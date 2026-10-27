@@ -12,6 +12,7 @@ later steps.
 | Filters (US, full-time, early career, US-person/clearance) | Written and tested |
 | OPT / sponsorship quoting, salary capture | Written and tested |
 | Google Sheet writer (dedupe by posting link, columns matched by header) | Written; tested against a fake sheet |
+| Discovery of companies not on the Watchlist (SimplifyJobs new-grad list: Hardware and Quant categories) | Written and tested; first live run is the real check |
 | Workday and custom career-site adapters | Not started |
 | Match scoring (Anthropic API) | Not started |
 | 7 AM Central schedule (GitHub Actions) | Not started |
@@ -32,6 +33,14 @@ in Actions) is the true check; if a field name differs, the fix is a one-line ch
 
 Filter rules live in `src/jobhunter/filters.py`; the role keywords you want live in
 `config/targets.yaml`.
+
+## Finding companies you don't know
+The Watchlist is a reference, not a limit. Each run also reads the public SimplifyJobs new-grad list
+(`config/targets.yaml` → `discovery`), which covers thousands of employers, and sends those listings
+through the same filters. Entries link to the employer's own application page; the list has no job
+description, so OPT/Visa stay "Not stated, verify" (listings flagged "U.S. Citizenship is Required" are
+dropped). Watchlist companies marked Excluded are never surfaced. Turn it off with `--no-discovery`.
+It is community-maintained, so treat a listing as a lead and confirm on the employer's page.
 
 ## Rules worth knowing
 - **Dropped:** US citizenship / "US person", ITAR, security-clearance language; non-US or unspecified

@@ -72,3 +72,21 @@ def test_board_token_accepts_urls_and_bare_tokens():
     assert board_token("ashby", "https://jobs.ashbyhq.com/acme") == "acme"
     assert board_token("lever", "") == ""
     assert board_token("lever", "https://example.com/careers") == ""
+
+
+def test_simplify_parse_and_filters():
+    from jobhunter.fetchers import simplify
+
+    item = {
+        "company_name": "Acme Silicon", "title": "Hardware Engineer", "active": True, "is_visible": True,
+        "category": "Hardware", "locations": ["Austin, TX", "Remote in USA"], "sponsorship": "Other",
+        "date_posted": 1792000000, "url": "https://jobs.acme.com/123?utm_source=Simplify&ref=Simplify&gh_jid=77",
+    }
+    job = simplify.parse(item)
+    assert job.company == "Acme Silicon" and job.industry == "Hardware" and job.category == "Hardware"
+    assert job.location == "Austin, TX | Remote in USA"
+    assert job.url == "https://jobs.acme.com/123?gh_jid=77"
+    assert job.posted == "2026-10-14" and job.source == "simplify"
+    assert simplify.parse({**item, "active": False}) is None
+    assert simplify.parse({**item, "is_visible": False}) is None
+    assert simplify.parse({**item, "sponsorship": "U.S. Citizenship is Required"}) is None

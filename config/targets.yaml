@@ -70,3 +70,11 @@ max_required_years: 3
 # Companies not listed here keep the link the feed provides.
 official_links:
   imc: "https://www.imc.com/us/careers/jobs/{id}"
+
+# Discovery: scan a public new-grad list for employers that are NOT on your Watchlist.
+# categories: which lists to read (Hardware, Quant, AI/ML/Data, Software, Product).
+# trusted_categories: for these, any title passes the keyword check (the list already says hardware).
+# Everything else (US location, senior, PhD, shift work, citizenship) is still filtered.
+discovery:
+  categories: [Hardware, Quant]
+  trusted_categories: [Hardware]

@@ -89,6 +89,8 @@ class Config:
     title_exclude: list[str] = field(default_factory=list)
     max_required_years: int = 3
     official_links: dict[str, str] = field(default_factory=dict)  # company (lowercase) -> URL with {id}
+    discovery_categories: list[str] = field(default_factory=list)  # lists to scan for unknown companies
+    trusted_categories: list[str] = field(default_factory=list)  # skip the title-keyword check for these
 
     @classmethod
     def from_yaml(cls, path) -> "Config":
@@ -98,6 +100,8 @@ class Config:
             title_exclude=[k.lower() for k in data.get("title_exclude", [])],
             max_required_years=int(data.get("max_required_years", 3)),
             official_links={k.lower(): v for k, v in (data.get("official_links") or {}).items()},
+            discovery_categories=list((data.get("discovery") or {}).get("categories", [])),
+            trusted_categories=list((data.get("discovery") or {}).get("trusted_categories", [])),
         )
 
 
@@ -151,10 +155,12 @@ def evaluate(job: Job, cfg: Config) -> Evaluation:
     title_low = job.title.lower()
     if any(word in title_low for word in cfg.title_exclude):
         return Evaluation(False, "excluded title keyword")
-    if not any(word in title_low for word in cfg.title_keywords):
+    if job.category not in cfg.trusted_categories and not any(
+        word in title_low for word in cfg.title_keywords
+    ):
         return Evaluation(False, "title off-target")
 
-    if EARLY_TITLE.search(job.title) or EARLY_DESCRIPTION.search(job.description[:2000]):
+    if job.source == "simplify" or EARLY_TITLE.search(job.title) or EARLY_DESCRIPTION.search(job.description[:2000]):
         level = "New grad / entry"
     elif years is not None:
         level = f"Unspecified (JD asks {years}y)"

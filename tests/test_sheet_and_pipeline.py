@@ -191,3 +191,21 @@ def test_targets_yaml_excludes_first_dry_run_noise():
         assert not evaluate(make_job(title=title, location="Austin, TX"), cfg).keep, title
     assert evaluate(make_job(title="Silicon Engineer", location="San Francisco, CA"), cfg).keep
     assert evaluate(make_job(title="Graduate Hardware Engineer", location="Chicago, United States"), cfg).keep
+
+
+def test_discovery_job_in_trusted_category_passes_title_check_and_is_new_grad():
+    cfg = Config(title_keywords=["quant"], title_exclude=[], max_required_years=3, trusted_categories=["Hardware"])
+    job = make_job(source="simplify", title="Graduate Engineer, Power Delivery", category="Hardware", description="")
+    records, _ = process([job], cfg, set())
+    assert records[0]["Level"] == "New grad / entry"
+    assert records[0]["OPT availability"] == "Not stated, verify"
+    off, stats = process([make_job(source="simplify", title="Graduate Engineer", category="Software", description="",
+                                   url="https://x.test/9")], cfg, set())
+    assert off == [] and stats["rejected: title off-target"] == 1
+
+
+def test_excluded_companies_from_watchlist():
+    from jobhunter.main import excluded_companies
+
+    rows = [{"Company": "Epic", "Sponsorship Notes": "Excluded: does not sponsor"}, {"Company": "IMC", "Sponsorship Notes": ""}]
+    assert excluded_companies(rows) == {"epic"}
