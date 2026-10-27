@@ -82,6 +82,13 @@ discovery:
 # Per company, per run: only the best-matching roles reach the sheet (same title in several cities counts once).
 max_per_company: 2
 
+# Don't feed one employer day after day (or after you applied/engaged): a company shown in the last
+# `cooldown_days` days, or already applied/interviewing/rejected, is only shown again for a role scoring at
+# least `great_match_score`, and at most `recent_company_max` per run.
+cooldown_days: 7
+great_match_score: 15
+recent_company_max: 1
+
 # Overall limit per run: the best-scoring roles across all companies. The rest are not marked as seen,
 # so they appear on later days as the backlog drains. 0 = no limit.
 max_new_per_day: 20

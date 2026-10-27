@@ -45,8 +45,13 @@ It is community-maintained, so treat a listing as a lead and confirm on the empl
 ## Rules worth knowing
 - **Dropped:** US citizenship / "US person", ITAR, security-clearance language; non-US or unspecified
   location; internships, co-ops, contracts; senior/staff/lead/II+ titles; JDs requiring more than 3 years.
-- **Flagged, not dropped:** "export control" language (noted in the Visa Sponsorship cell) and
-  "no sponsorship" language (quoted, because OPT may still apply).
+- **Also dropped:** postings that say they will not sponsor visas or take OPT/F-1/CPT candidates
+  ("no visa sponsorship", "without sponsorship now or in the future", "no OPT", ...).
+- **Flagged, not dropped:** "export control" language (noted in the Visa Sponsorship cell).
+- **Limits:** at most `max_per_company` (2) roles per company and `max_new_per_day` (20) overall, best score first.
+  A company shown in the last `cooldown_days` days, or already applied/interviewing/rejected (Watchlist
+  "Already Applied?", Jobs "Status"), only returns for a role scoring at least `great_match_score`, one per run.
+  The Jobs tab needs a **Date Added** column for the cooldown; the run fills it.
 - **Dates:** `Role Posting Date` is the feed's first-published date when it exists, otherwise the last-updated
   date, which can be later than the real posting date.
 

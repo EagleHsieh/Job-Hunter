@@ -16,11 +16,13 @@ def title_score(title: str, cfg: Config, category: str = "") -> int:
     return score + (cfg.trusted_category_bonus if category in cfg.trusted_categories else 0)
 
 
-def limit_per_company(records: list[dict], cap: int):
+def limit_per_company(records: list[dict], cap: int, recent=frozenset(), great_score=0, recent_cap=1):
     """Group records by company, best score first (ties: newest posting), keep at most `cap` each.
 
     Returns (kept records grouped by company with the strongest company first, number dropped).
     Duplicate titles at one company (same role in several cities) are collapsed to the first.
+    A company in `recent` (fed to you lately, or already applied/engaged) only gets roles scoring at least
+    `great_score`, and at most `recent_cap` of them: no flooding one employer's HR with applications.
     """
     groups: dict[str, list[dict]] = defaultdict(list)
     for record in records:
@@ -30,14 +32,20 @@ def limit_per_company(records: list[dict], cap: int):
     for rows in groups.values():
         rows.sort(key=lambda r: (-r.get("_score", 0), _neg_date(r.get("Role Posting Date", "")), r["Role"]))
         kept, titles = [], set()
+        in_cooldown = rows[0]["Company Name"].strip().lower() in recent
+        limit = recent_cap if in_cooldown else cap
         for row in rows:
             title = row["Role"].strip().lower()
-            if title in titles or (cap and len(kept) >= cap):
+            if in_cooldown and row.get("_score", 0) < great_score:
+                dropped += 1
+                continue
+            if title in titles or (limit and len(kept) >= limit):
                 dropped += 1
                 continue
             titles.add(title)
             kept.append(row)
         ordered.append(kept)
+    ordered = [rows for rows in ordered if rows]
     ordered.sort(key=lambda rows: -max(r.get("_score", 0) for r in rows))
     return [record for rows in ordered for record in rows], dropped
 

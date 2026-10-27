@@ -54,6 +54,15 @@ def excluded_companies(rows: list[dict]) -> set[str]:
     }
 
 
+def applied_companies(rows: list[dict]) -> set[str]:
+    """Watchlist companies you already applied to (Already Applied? starts with Yes)."""
+    return {
+        str(r.get("Company", "")).strip().lower()
+        for r in rows
+        if str(r.get("Already Applied?", "")).strip().lower().startswith("yes")
+    }
+
+
 def parse_board_args(values: list[str]) -> list[Target]:
     targets = []
     for value in values:
@@ -68,6 +77,7 @@ def run(args) -> int:
     cfg = Config.from_yaml(args.config)
     sheet = None
     excluded: set[str] = set()
+    recent: set[str] = set()
     if args.board:
         targets = parse_board_args(args.board)
     else:
@@ -77,6 +87,7 @@ def run(args) -> int:
         watchlist = sheet.watchlist()
         targets = targets_from_watchlist(watchlist)
         excluded = excluded_companies(watchlist)
+        recent = applied_companies(watchlist)
         log.info("%d watchlist companies have a known job-board feed", len(targets))
 
     if not args.dry_run and sheet is None:
@@ -84,6 +95,8 @@ def run(args) -> int:
 
         sheet = Sheet.from_env()
     seen = sheet.existing_links() if sheet else set()
+    if sheet:
+        recent |= sheet.recent_companies(cfg.cooldown_days)
 
     all_records: list[dict] = []
     totals: Counter = Counter()
@@ -117,9 +130,11 @@ def run(args) -> int:
             all_records.extend(records)
             log.info("discovery: %d listings, %d new", len(found), len(records))
 
-    all_records, dropped = limit_per_company(all_records, cfg.max_per_company)
+    all_records, dropped = limit_per_company(
+        all_records, cfg.max_per_company, recent, cfg.great_match_score, cfg.recent_company_max
+    )
     if dropped:
-        totals[f"skipped: beyond top {cfg.max_per_company} per company (or same title again)"] += dropped
+        totals[f"skipped: beyond top {cfg.max_per_company} per company (or same title again, or fed/applied recently without a great match)"] += dropped
 
     all_records, over = limit_total(all_records, cfg.max_new_per_day)
     if over:

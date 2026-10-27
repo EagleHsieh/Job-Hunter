@@ -22,7 +22,7 @@ class FakeWorksheet:
     def row_values(self, index):
         return self.rows[index - 1]
 
-    def col_values(self, column):
+    def col_values(self, column, value_render_option=None):
         return [row[column - 1] if len(row) >= column else "" for row in self.rows]
 
     def get_all_records(self):
@@ -295,3 +295,55 @@ def test_daily_limit_keeps_top_scores_in_grouped_order():
     assert [r["Role"] for r in kept] == ["a1", "b1", "c1"] and over == 1
     assert limit_total(rows, 0) == (rows, 0)
     assert limit_total(rows, 10) == (rows, 0)
+
+
+def test_recent_companies_from_date_added_and_status():
+    from datetime import date
+
+    class UnformattedWorksheet(FakeWorksheet):
+        def col_values(self, column, value_render_option=None):
+            assert value_render_option == "UNFORMATTED_VALUE"
+            return super().col_values(column, value_render_option)
+
+    headers = HEADERS + ["Date Added"]
+
+    def row(company, added="", status=""):
+        out = [""] * len(headers)
+        out[headers.index("Company Name")] = company
+        out[headers.index("Date Added")] = added
+        out[headers.index("Status")] = status
+        return out
+
+    today = date(2026, 10, 27)
+    serial = (date(2026, 10, 25) - date(1899, 12, 30)).days  # Sheets stores dates as serial numbers
+    tab = UnformattedWorksheet([
+        headers,
+        row("Apple", serial),
+        row("IMC", "2026-10-26"),
+        row("Old Co", "2026-09-01"),
+        row("Applied Co", "2026-09-01", "Applied"),
+        row("No Date Co"),
+    ])
+    sheet = Sheet(FakeSpreadsheet({"Jobs": tab}))
+    assert sheet.recent_companies(7, today) == {"apple", "imc", "applied co"}
+    assert Sheet(FakeSpreadsheet({"Jobs": FakeWorksheet([["Company Name"]])})).recent_companies(7, today) == set()
+
+
+def test_company_fed_recently_only_returns_for_a_great_match():
+    from jobhunter.rank import limit_per_company
+
+    def rec(company, role, score):
+        return {"Company Name": company, "Role": role, "_score": score, "Role Posting Date": ""}
+
+    rows = [rec("Apple", "a1", 20), rec("Apple", "a2", 18), rec("Apple", "a3", 9),
+            rec("IMC", "i1", 12), rec("IMC", "i2", 8), rec("NVIDIA", "n1", 10), rec("NVIDIA", "n2", 9)]
+    kept, dropped = limit_per_company(rows, 2, recent={"apple", "imc"}, great_score=15, recent_cap=1)
+    assert [r["Role"] for r in kept] == ["a1", "n1", "n2"]  # Apple: one great role; IMC: nothing good enough
+    assert dropped == 4
+
+
+def test_applied_companies_from_watchlist():
+    from jobhunter.main import applied_companies
+
+    rows = [{"Company": "McKinsey", "Already Applied?": "Yes - Specialist"}, {"Company": "IMC", "Already Applied?": ""}]
+    assert applied_companies(rows) == {"mckinsey"}

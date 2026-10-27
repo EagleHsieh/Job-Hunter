@@ -115,3 +115,39 @@ def test_technician_shift_and_phd_roles_are_dropped(overrides, reason):
 def test_masters_or_phd_stays_open():
     assert evaluate(job(description="MS or PhD in Electrical Engineering."), CFG_FROM_FILE).keep
     assert evaluate(job(description="Bachelor's degree in EE; shifts of focus change often."), CFG_FROM_FILE).keep
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "We do not sponsor visas.",
+        "Unfortunately we will not be able to sponsor employment visas for this role.",
+        "Visa sponsorship is not available for this position.",
+        "No visa sponsorship is offered.",
+        "Candidates must be authorized to work in the US without sponsorship now or in the future.",
+        "Applicants must not require sponsorship to work in the United States.",
+        "We are unable to provide immigration sponsorship.",
+        "F-1 OPT candidates are not eligible.",
+        "No OPT or CPT candidates.",
+        "We cannot sponsor H-1B.",
+        "We do not accept candidates on F-1 visas.",
+        "This role is not eligible for sponsorship.",
+    ],
+)
+def test_no_sponsorship_language_is_a_clear_no(sentence):
+    result = evaluate(job(description=f"Join our team. {sentence}"), CFG)
+    assert not result.keep and "sponsorship" in result.reason
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "We welcome F-1 OPT candidates.",
+        "Optiver is supportive of US immigration sponsorship for this role.",
+        "We sponsor H-1B visas for eligible hires.",
+        "Our sponsorship of local events is generous.",
+        "Visa sponsorship is available.",
+    ],
+)
+def test_sponsorship_friendly_language_stays(sentence):
+    assert evaluate(job(description=f"Join our team. {sentence}"), CFG).keep

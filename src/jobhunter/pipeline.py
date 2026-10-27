@@ -1,4 +1,5 @@
 from collections import Counter
+from datetime import date
 
 from .extract import NOT_STATED, snippets
 from .filters import Config, Evaluation, evaluate
@@ -20,6 +21,7 @@ def to_record(job: Job, evaluation: Evaluation, opt: str, visa: str) -> dict:
         "Posting Link": job.url,
         "OPT availability": opt,
         "Visa Sponsorship": visa,
+        "Date Added": date.today().isoformat(),
     }
 
 
