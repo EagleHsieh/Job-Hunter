@@ -94,6 +94,10 @@ keep_companies:
 # How well a title fits you (EE/IC/validation/signal integrity, then quant). A keyword adds its weight once.
 # Used only to pick each company's top roles; edit freely.
 early_career_bonus: 3
+# Jobs from a trusted discovery category (Hardware) get this base score even without a keyword.
+trusted_category_bonus: 3
+# Roles scoring below this never reach the sheet (software-only roles score 0 or less).
+min_score: 3
 title_weights:
   signal integrity: 10
   power integrity: 10

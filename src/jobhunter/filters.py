@@ -92,6 +92,8 @@ class Config:
     max_per_company: int = 5
     title_weights: dict[str, int] = field(default_factory=dict)
     early_career_bonus: int = 3
+    trusted_category_bonus: int = 3
+    min_score: int = 0
     exclude_company_patterns: list[str] = field(default_factory=list)
     keep_companies: list[str] = field(default_factory=list)
     discovery_categories: list[str] = field(default_factory=list)  # lists to scan for unknown companies
@@ -108,6 +110,8 @@ class Config:
             max_per_company=int(data.get("max_per_company", 5)),
             title_weights={k.lower(): int(v) for k, v in (data.get("title_weights") or {}).items()},
             early_career_bonus=int(data.get("early_career_bonus", 3)),
+            trusted_category_bonus=int(data.get("trusted_category_bonus", 3)),
+            min_score=int(data.get("min_score", 0)),
             exclude_company_patterns=[str(x).lower() for x in data.get("exclude_company_patterns", [])],
             keep_companies=[str(x).lower() for x in data.get("keep_companies", [])],
             discovery_categories=list((data.get("discovery") or {}).get("categories", [])),

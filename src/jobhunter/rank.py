@@ -9,10 +9,11 @@ from collections import defaultdict
 from .filters import EARLY_TITLE, Config
 
 
-def title_score(title: str, cfg: Config) -> int:
+def title_score(title: str, cfg: Config, category: str = "") -> int:
     low = title.lower()
     score = sum(weight for word, weight in cfg.title_weights.items() if word in low)
-    return score + (cfg.early_career_bonus if EARLY_TITLE.search(title) else 0)
+    score += cfg.early_career_bonus if EARLY_TITLE.search(title) else 0
+    return score + (cfg.trusted_category_bonus if category in cfg.trusted_categories else 0)
 
 
 def limit_per_company(records: list[dict], cap: int):
