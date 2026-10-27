@@ -11,6 +11,7 @@ import logging
 import sys
 from collections import Counter
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from .fetchers import FETCHERS, board_token, simplify
@@ -136,7 +137,17 @@ def run(args) -> int:
     if dropped:
         totals[f"skipped: beyond top {cfg.max_per_company} per company (or same title again, or fed/applied recently without a great match)"] += dropped
 
-    all_records, over = limit_total(all_records, cfg.max_new_per_day)
+    daily_cap = cfg.max_new_per_day
+    if sheet is not None and daily_cap:
+        # Another run today may already have used part of the limit.
+        daily_cap = max(0, daily_cap - sheet.count_added_on(date.today()))
+        if daily_cap == 0:
+            totals["deferred: today's limit already used by an earlier run"] += len(all_records)
+            all_records = []
+    if daily_cap:
+        all_records, over = limit_total(all_records, daily_cap)
+    else:
+        over = 0
     if over:
         totals[f"deferred: over today's limit of {cfg.max_new_per_day} (shown on later days)"] += over
 

@@ -61,6 +61,12 @@ def _to_date(value):
         return None
 
 
+def role_key(company: str, title: str) -> str:
+    """Same role at the same company (it may be posted once per city): one key."""
+    clean = lambda text: re.sub(r"\s+", " ", str(text).strip().lower())
+    return f"role:{clean(company)}|{clean(title)}"
+
+
 def build_row(headers: list[str], record: dict) -> list:
     """Align a record (keyed by header name) to the sheet's current column order."""
     return [record.get(header, "") for header in headers]
@@ -116,6 +122,8 @@ class Sheet:
         return recent
 
     def existing_links(self) -> set[str]:
+        """Keys of everything already in the Jobs tab: posting links, posting ids, and company+title pairs
+        (so the same role posted in another city is not added again)."""
         worksheet = self._sheet.worksheet(JOBS_TAB)
         headers = worksheet.row_values(1)
         column = headers.index(LINK_HEADER) + 1
@@ -123,7 +131,22 @@ class Sheet:
         for value in worksheet.col_values(column)[1:]:
             if value:
                 seen |= link_keys(value)
+        if COMPANY_HEADER in headers and "Role" in headers:
+            companies = worksheet.col_values(headers.index(COMPANY_HEADER) + 1)[1:]
+            roles = worksheet.col_values(headers.index("Role") + 1)[1:]
+            for company, role in zip(companies, roles):
+                if company.strip() and role.strip():
+                    seen.add(role_key(company, role))
         return seen
+
+    def count_added_on(self, day: date) -> int:
+        """Rows whose Date Added is `day`: lets repeated runs on one day respect the daily limit."""
+        worksheet = self._sheet.worksheet(JOBS_TAB)
+        headers = worksheet.row_values(1)
+        if ADDED_HEADER not in headers:
+            return 0
+        values = worksheet.col_values(headers.index(ADDED_HEADER) + 1, value_render_option="UNFORMATTED_VALUE")[1:]
+        return sum(1 for value in values if _to_date(value) == day)
 
     def append_jobs(self, records: list[dict]) -> int:
         """Append today's rows below the last row, so the sheet reads oldest to newest (Date Added).

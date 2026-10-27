@@ -362,3 +362,36 @@ def test_find_deadline_variants():
     assert find_deadline("Please apply by Jan 5", today) == "2027-01-05"
     assert find_deadline("Applications close on Feb 30", today) == ""
     assert find_deadline("We hire year round.", today) == ""
+
+
+def test_same_role_in_another_city_is_not_added_again():
+    cfg = Config(title_keywords=["hardware"], title_exclude=[], max_required_years=3)
+    jobs_tab = FakeWorksheet([
+        HEADERS,
+        ["", "", "Acme", "Hardware Engineer, New Grad", "", "", "", "", "", "", "", "", "", "", "",
+         "https://boards.greenhouse.io/acme/jobs/1"] + [""] * 3,
+    ])
+    sheet = Sheet(FakeSpreadsheet({"Jobs": jobs_tab}))
+    seen = sheet.existing_links()
+    other_city = make_job(url="https://boards.greenhouse.io/acme/jobs/2", location="Dallas, TX")
+    records, stats = process([other_city], cfg, seen)
+    assert records == [] and stats["skipped: same role already in sheet (other city)"] == 1
+
+
+def test_count_added_on_counts_only_that_day():
+    from datetime import date
+
+    headers = HEADERS + ["Date Added"]
+
+    class Unformatted(FakeWorksheet):
+        def col_values(self, column, value_render_option=None):
+            return super().col_values(column)
+
+    def row(added):
+        out = [""] * len(headers)
+        out[headers.index("Date Added")] = added
+        return out
+
+    serial = (date(2026, 10, 27) - date(1899, 12, 30)).days
+    tab = Unformatted([headers, row(serial), row("2026-10-27"), row("2026-10-26"), row("")])
+    assert Sheet(FakeSpreadsheet({"Jobs": tab})).count_added_on(date(2026, 10, 27)) == 2
