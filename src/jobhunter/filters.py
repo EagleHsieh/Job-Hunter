@@ -66,6 +66,17 @@ EARLY_DESCRIPTION = re.compile(
     r"\b0\s*(?:-|–|to)\s*[123]\s*years",
     re.IGNORECASE,
 )
+# Shift-based monitoring/operations work, not an engineering role.
+SHIFT_WORK = re.compile(
+    r"shift work|work shifts?|shift schedule|\b(?:rotating|night|overnight|weekend|swing|12[- ]hour)\s+shifts?\b",
+    re.IGNORECASE,
+)
+# PhD-level language, and the degrees that would make a role open to a master's student.
+PHD_MENTION = re.compile(r"\bph\.?d\.?\b|\bdoctorate\b|\bdoctoral\b|\bpost-?doc\w*", re.IGNORECASE)
+NON_PHD_DEGREE = re.compile(
+    r"\bmaster'?s?\b|\bm\.?s\.?\b|\bmeng\b|\bbachelor'?s?\b|\bb\.?s\.?\b|\bundergraduate\b|\bbsc\b|\bmsc\b",
+    re.IGNORECASE,
+)
 YEARS_REQUIRED = re.compile(
     r"(\d{1,2})(?:\s*(?:-|–|to)\s*\d{1,2})?\s*\+?\s*(?:years?|yrs?)[^.\n]{0,80}?experience",
     re.IGNORECASE,
@@ -77,6 +88,9 @@ class Config:
     title_keywords: list[str] = field(default_factory=list)
     title_exclude: list[str] = field(default_factory=list)
     max_required_years: int = 3
+    official_links: dict[str, str] = field(default_factory=dict)  # company (lowercase) -> URL with {id}
+    discovery_categories: list[str] = field(default_factory=list)  # lists to scan for unknown companies
+    trusted_categories: list[str] = field(default_factory=list)  # skip the title-keyword check for these
 
     @classmethod
     def from_yaml(cls, path) -> "Config":
@@ -85,6 +99,9 @@ class Config:
             title_keywords=[k.lower() for k in data.get("title_keywords", [])],
             title_exclude=[k.lower() for k in data.get("title_exclude", [])],
             max_required_years=int(data.get("max_required_years", 3)),
+            official_links={k.lower(): v for k, v in (data.get("official_links") or {}).items()},
+            discovery_categories=list((data.get("discovery") or {}).get("categories", [])),
+            trusted_categories=list((data.get("discovery") or {}).get("trusted_categories", [])),
         )
 
 
@@ -128,16 +145,22 @@ def evaluate(job: Job, cfg: Config) -> Evaluation:
         return Evaluation(False, "not full-time")
     if SENIOR_TITLE.search(job.title):
         return Evaluation(False, "senior title")
+    if SHIFT_WORK.search(job.description):
+        return Evaluation(False, "shift work")
+    if PHD_MENTION.search(job.description) and not NON_PHD_DEGREE.search(job.description):
+        return Evaluation(False, "PhD-level role")
     years = required_years(job.description)
     if years is not None and years > cfg.max_required_years:
         return Evaluation(False, f"requires more than {cfg.max_required_years} years")
     title_low = job.title.lower()
     if any(word in title_low for word in cfg.title_exclude):
         return Evaluation(False, "excluded title keyword")
-    if not any(word in title_low for word in cfg.title_keywords):
+    if job.category not in cfg.trusted_categories and not any(
+        word in title_low for word in cfg.title_keywords
+    ):
         return Evaluation(False, "title off-target")
 
-    if EARLY_TITLE.search(job.title) or EARLY_DESCRIPTION.search(job.description[:2000]):
+    if job.source == "simplify" or EARLY_TITLE.search(job.title) or EARLY_DESCRIPTION.search(job.description[:2000]):
         level = "New grad / entry"
     elif years is not None:
         level = f"Unspecified (JD asks {years}y)"

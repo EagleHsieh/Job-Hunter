@@ -13,3 +13,4 @@ class Job:
     salary: str = ""  # only when the posting states it; otherwise empty
     industry: str = ""
     commitment: str = ""  # e.g. "Full-time", "Intern"; empty when the feed gives none
+    category: str = ""  # discovery-source category (e.g. "Hardware"); empty for company boards

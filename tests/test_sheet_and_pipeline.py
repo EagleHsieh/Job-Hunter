@@ -143,3 +143,69 @@ def test_targets_from_watchlist_skips_unready_and_excluded():
         ("ByUrl", "lever", "byurl"),
     ]
     assert targets[0].industry == "AI"
+
+
+def test_job_id_and_link_keys():
+    from jobhunter.sheet import job_id, link_keys
+
+    assert job_id("https://job-boards.eu.greenhouse.io/imc/jobs/4823805101") == "4823805101"
+    assert job_id("https://www.jumptrading.com/hr/job?gh_jid=8052343") == "8052343"
+    assert job_id("https://jobs.ashbyhq.com/crusoe/1e02db37-9329-42f3-b55b-2c9631414661") == "1e02db37-9329-42f3-b55b-2c9631414661"
+    assert job_id("https://optiver.com/join-us/jobs/technology/chicago/graduate-fpga-engineer-2027-start-chicago/") == ""
+    assert "id:4823805101" in link_keys("https://www.imc.com/us/careers/jobs/4823805101")
+    assert link_keys("") == set()
+
+
+def test_official_link_swap_and_dedupe_across_link_styles():
+    from jobhunter.sheet import link_keys
+
+    cfg = Config(title_keywords=["hardware"], title_exclude=[], max_required_years=3,
+                 official_links={"imc": "https://www.imc.com/us/careers/jobs/{id}"})
+    greenhouse = make_job(company="IMC", url="https://job-boards.eu.greenhouse.io/imc/jobs/4823805101")
+    records, _ = process([greenhouse], cfg, set())
+    assert records[0]["Posting Link"] == "https://www.imc.com/us/careers/jobs/4823805101"
+
+    # The sheet already holds the official link; the feed's job-board link must not look new.
+    seen = link_keys("https://www.imc.com/us/careers/jobs/4823805101")
+    records, stats = process(
+        [make_job(company="IMC", url="https://job-boards.eu.greenhouse.io/imc/jobs/4823805101")], cfg, seen
+    )
+    assert records == [] and stats["skipped: already in sheet"] == 1
+    # A company without a template keeps the feed link.
+    other, _ = process([make_job(url="https://boards.greenhouse.io/acme/jobs/4823805999")], cfg, set())
+    assert other[0]["Posting Link"] == "https://boards.greenhouse.io/acme/jobs/4823805999"
+
+
+def test_targets_yaml_excludes_first_dry_run_noise():
+    from pathlib import Path
+
+    from jobhunter.filters import evaluate
+
+    cfg = Config.from_yaml(Path(__file__).resolve().parents[1] / "config" / "targets.yaml")
+    assert cfg.official_links["imc"].startswith("https://www.imc.com/")
+    for title in [
+        "IT Systems Engineer, M&A", "Customer Service Systems Engineer, Government",
+        "Web Design Engineer", "Data Center Hardware Technician", "Associate, Capital Markets",
+        "Graduate Quantitative Researcher (PhD)", "Research Associate, Biology",
+    ]:
+        assert not evaluate(make_job(title=title, location="Austin, TX"), cfg).keep, title
+    assert evaluate(make_job(title="Silicon Engineer", location="San Francisco, CA"), cfg).keep
+    assert evaluate(make_job(title="Graduate Hardware Engineer", location="Chicago, United States"), cfg).keep
+
+
+def test_discovery_job_in_trusted_category_passes_title_check_and_is_new_grad():
+    cfg = Config(title_keywords=["quant"], title_exclude=[], max_required_years=3, trusted_categories=["Hardware"])
+    job = make_job(source="simplify", title="Graduate Engineer, Power Delivery", category="Hardware", description="")
+    records, _ = process([job], cfg, set())
+    assert records[0]["Level"] == "New grad / entry"
+    assert records[0]["OPT availability"] == "Not stated, verify"
+    off, stats = process([make_job(source="simplify", title="Graduate Engineer", category="Software", description="",
+                                   url="https://x.test/9")], cfg, set())
+    assert off == [] and stats["rejected: title off-target"] == 1
+
+
+def test_excluded_companies_from_watchlist():
+    from jobhunter.main import excluded_companies
+
+    rows = [{"Company": "Epic", "Sponsorship Notes": "Excluded: does not sponsor"}, {"Company": "IMC", "Sponsorship Notes": ""}]
+    assert excluded_companies(rows) == {"epic"}

@@ -13,7 +13,7 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from .fetchers import FETCHERS, board_token
+from .fetchers import FETCHERS, board_token, simplify
 from .fetchers.base import BoardNotFound, FetchError
 from .filters import Config
 from .pipeline import process
@@ -44,6 +44,15 @@ def targets_from_watchlist(rows: list[dict]) -> list[Target]:
     return targets
 
 
+def excluded_companies(rows: list[dict]) -> set[str]:
+    """Watchlist companies marked Excluded (no sponsorship, passed, ignore): never surfaced by discovery."""
+    return {
+        str(r.get("Company", "")).strip().lower()
+        for r in rows
+        if str(r.get("Sponsorship Notes", "")).strip().lower().startswith("excluded")
+    }
+
+
 def parse_board_args(values: list[str]) -> list[Target]:
     targets = []
     for value in values:
@@ -57,13 +66,16 @@ def parse_board_args(values: list[str]) -> list[Target]:
 def run(args) -> int:
     cfg = Config.from_yaml(args.config)
     sheet = None
+    excluded: set[str] = set()
     if args.board:
         targets = parse_board_args(args.board)
     else:
         from .sheet import Sheet
 
         sheet = Sheet.from_env()
-        targets = targets_from_watchlist(sheet.watchlist())
+        watchlist = sheet.watchlist()
+        targets = targets_from_watchlist(watchlist)
+        excluded = excluded_companies(watchlist)
         log.info("%d watchlist companies have a known job-board feed", len(targets))
 
     if not args.dry_run and sheet is None:
@@ -92,6 +104,18 @@ def run(args) -> int:
         all_records.extend(records)
         log.info("%s: %d postings, %d new", target.company, len(jobs), len(records))
 
+    if cfg.discovery_categories and not args.no_discovery:
+        try:
+            found = [j for j in simplify.fetch(cfg.discovery_categories) if j.company.lower() not in excluded]
+        except FetchError as exc:
+            log.warning("discovery list unavailable: %s", exc)
+            totals["fetch errors"] += 1
+        else:
+            records, stats = process(found, cfg, seen)
+            totals.update(stats)
+            all_records.extend(records)
+            log.info("discovery: %d listings, %d new", len(found), len(records))
+
     if args.max_new:
         all_records = all_records[: args.max_new]
 
@@ -114,6 +138,7 @@ def main(argv=None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="print rows instead of writing the sheet")
     parser.add_argument("--board", action="append", default=[], help="ats:token[:Company]; skips the sheet")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
+    parser.add_argument("--no-discovery", action="store_true", help="skip the unknown-company discovery list")
     parser.add_argument("--max-new", type=int, default=0, help="cap rows written in one run (0 = no cap)")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
