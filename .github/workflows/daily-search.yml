@@ -1,0 +1,70 @@
+name: Daily job search
+
+on:
+  schedule:
+    # 7 AM US Central. GitHub cron is UTC only, so list both offsets (CDT = UTC-5, CST = UTC-6)
+    # and let the "Gate" step run only the one that lands at 7 AM Central.
+    - cron: "3 12 * * *"
+    - cron: "3 13 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only (do not write to the sheet)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # needed for keyless Google auth (Workload Identity Federation)
+
+concurrency:
+  group: daily-job-search
+  cancel-in-progress: false
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Gate (7 AM Central only for scheduled runs)
+        id: gate
+        run: |
+          hour="$(TZ=America/Chicago date +%H)"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$hour" != "07" ]; then
+            echo "Central hour is $hour, not 07: skipping."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Authenticate to Google (keyless)
+        if: steps.gate.outputs.run == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Run search
+        if: steps.gate.outputs.run == 'true'
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          PYTHONPATH: src
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python -m jobhunter.main --dry-run
+          else
+            python -m jobhunter.main
+          fi
