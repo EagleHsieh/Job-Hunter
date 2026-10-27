@@ -264,3 +264,19 @@ def test_school_employers_are_dropped_but_company_named_university_is_kept():
     assert not school.keep and "school" in school.reason
     assert not evaluate(make_job(company="Boston College", title="Hardware Engineer"), cfg).keep
     assert evaluate(make_job(company="Akuna Capital University", title="Hardware Engineer"), cfg).keep
+
+
+def test_low_scoring_titles_are_left_out_of_the_sheet():
+    cfg = Config(
+        title_keywords=["engineer"], title_exclude=[], max_required_years=3, min_score=3,
+        title_weights={"embedded": 3, "software": -4, "hardware": 7},
+    )
+    jobs = [
+        make_job(title="Software Engineer, New Grad", url="https://x.test/1000001"),   # -4 + 3 = -1
+        make_job(title="Embedded Software Engineer", url="https://x.test/1000002"),    # 3 - 4 = -1
+        make_job(title="Hardware Engineer, New Grad", url="https://x.test/1000003"),   # 7 + 3 = 10
+    ]
+    records, stats = process(jobs, cfg, set())
+    assert [r["Role"] for r in records] == ["Hardware Engineer, New Grad"]
+    assert records[0]["_score"] == 10
+    assert stats["rejected: low title match (score under 3)"] == 2

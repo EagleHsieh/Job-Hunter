@@ -46,6 +46,10 @@ def process(jobs: list[Job], cfg: Config, seen_links: set[str]):
         if not evaluation.keep:
             stats[f"rejected: {evaluation.reason}"] += 1
             continue
+        score = title_score(job.title, cfg, job.category)
+        if score < cfg.min_score:
+            stats[f"rejected: low title match (score under {cfg.min_score})"] += 1
+            continue
         opt, visa = snippets(job.description)
         if evaluation.flags:
             suffix = f"[{', '.join(evaluation.flags)}]"
@@ -54,7 +58,7 @@ def process(jobs: list[Job], cfg: Config, seen_links: set[str]):
         job.url = official_url(job, cfg)
         seen_links |= link_keys(job.url)
         record = to_record(job, evaluation, opt, visa)
-        record["_score"] = title_score(job.title, cfg)  # internal: used to rank, never written to the sheet
+        record["_score"] = score  # internal: used to rank, never written to the sheet
         records.append(record)
         stats["new"] += 1
     return records, stats
