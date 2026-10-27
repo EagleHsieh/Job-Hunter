@@ -215,28 +215,17 @@ def test_excluded_companies_from_watchlist():
     assert excluded_companies(rows) == {"epic"}
 
 
-def test_new_rows_are_grouped_under_their_company():
-    def row(company, role):
-        out = [""] * len(HEADERS)
-        out[HEADERS.index("Company Name")], out[HEADERS.index("Role")] = company, role
-        return out
-
-    tab = FakeWorksheet([HEADERS, row("IMC", "a"), row("IMC", "b"), row("Optiver", "c"), row("NVIDIA", "d")])
+def test_new_rows_are_appended_at_the_bottom_in_batch_order():
+    tab = FakeWorksheet([HEADERS, [""] * len(HEADERS), [""] * len(HEADERS)])
     sheet = Sheet(FakeSpreadsheet({"Jobs": tab}))
     records = [
-        {"Company Name": "Optiver", "Role": "c2"},
-        {"Company Name": "IMC", "Role": "a2"},
-        {"Company Name": "IMC", "Role": "a3"},
-        {"Company Name": "Apple", "Role": "x"},
-        {"Company Name": "Apple", "Role": "y"},
+        {"Company Name": "Apple", "Role": "x"}, {"Company Name": "Apple", "Role": "y"},
+        {"Company Name": "IMC", "Role": "z"},
     ]
-    assert sheet.append_jobs(records) == 5
-    order = [(r[HEADERS.index("Company Name")], r[HEADERS.index("Role")]) for r in tab.rows[1:]]
-    assert order == [("IMC", "a"), ("IMC", "b"), ("IMC", "a2"), ("IMC", "a3"), ("Optiver", "c"), ("Optiver", "c2"),
-                     ("NVIDIA", "d")]
-    # New company Apple goes at the end together, in the order given.
-    assert [(r[HEADERS.index("Company Name")], r[HEADERS.index("Role")]) for r in tab.appended] == [("Apple", "x"), ("Apple", "y")]
-    assert all(flag for _, flag in tab.inserted)  # inherit dropdowns/formats from the row above
+    assert sheet.append_jobs(records) == 3
+    assert len(tab.rows) == 3  # nothing inserted between existing rows
+    assert [r[HEADERS.index("Role")] for r in tab.appended] == ["x", "y", "z"]
+    assert tab.options == "USER_ENTERED"
 
 
 def test_limit_per_company_keeps_best_five_and_collapses_same_title():
@@ -347,3 +336,29 @@ def test_applied_companies_from_watchlist():
 
     rows = [{"Company": "McKinsey", "Already Applied?": "Yes - Specialist"}, {"Company": "IMC", "Already Applied?": ""}]
     assert applied_companies(rows) == {"mckinsey"}
+
+
+def test_match_columns_and_deadline_are_filled():
+    cfg = Config(title_keywords=["asic"], title_exclude=[], max_required_years=3,
+                 title_weights={"asic": 6, "verification": 7, "software": -4}, match_score_full=25)
+    job = make_job(title="ASIC Verification Engineer, New Grad", location="Austin, TX",
+                   description="Apply by Nov 14, 2026. We welcome F-1 OPT candidates.")
+    records, _ = process([job], cfg, set())
+    row = records[0]
+    assert row["Top Matching Keywords"] == "verification, asic"
+    assert row["Match Score"] == 64  # (7 + 6 + 3 early-career) / 25
+    assert row["Submission Deadline"] == "2026-11-14"
+    assert "Requirement Met Count" not in row  # needs the JD-based matcher
+
+
+def test_find_deadline_variants():
+    from datetime import date
+
+    from jobhunter.extract import find_deadline
+
+    today = date(2026, 10, 27)
+    assert find_deadline("Application deadline: November 3", today) == "2026-11-03"
+    assert find_deadline("Closing date - Dec 1st, 2026", today) == "2026-12-01"
+    assert find_deadline("Please apply by Jan 5", today) == "2027-01-05"
+    assert find_deadline("Applications close on Feb 30", today) == ""
+    assert find_deadline("We hire year round.", today) == ""

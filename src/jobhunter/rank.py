@@ -70,3 +70,15 @@ def limit_total(records: list[dict], cap: int):
     )
     keep = set(ranked[:cap])
     return [r for i, r in enumerate(records) if i in keep], len(records) - cap
+
+
+def matched_keywords(title: str, cfg: Config) -> str:
+    """The title keywords that earned points, strongest first (e.g. "asic, digital design")."""
+    low = title.lower()
+    hits = sorted(((w, word) for word, w in cfg.title_weights.items() if w > 0 and word in low), reverse=True)
+    return ", ".join(word for _, word in hits)
+
+
+def match_percent(score: int, cfg: Config) -> int:
+    """Title score on a 0-100 scale (cfg.match_score_full points = 100)."""
+    return max(0, min(100, round(score * 100 / cfg.match_score_full)))
