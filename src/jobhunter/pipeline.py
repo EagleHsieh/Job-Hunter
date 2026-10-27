@@ -5,7 +5,7 @@ from .extract import NOT_STATED, find_deadline, snippets
 from .filters import Config, Evaluation, evaluate
 from .models import Job
 from .rank import match_percent, matched_keywords, title_score
-from .sheet import job_id, link_keys
+from .sheet import job_id, link_keys, role_key
 
 
 def to_record(job: Job, evaluation: Evaluation, opt: str, visa: str) -> dict:
@@ -52,18 +52,23 @@ def process(jobs: list[Job], cfg: Config, seen_links: set[str]):
         if score < cfg.min_score:
             stats[f"rejected: low title match (score under {cfg.min_score})"] += 1
             continue
+        rkey = role_key(job.company, job.title)
+        if rkey in seen_links:
+            stats["skipped: same role already in sheet (other city)"] += 1
+            continue
         opt, visa = snippets(job.description)
         if evaluation.flags:
             suffix = f"[{', '.join(evaluation.flags)}]"
             visa = f"{NOT_STATED} {suffix}" if visa == NOT_STATED else f"{visa} {suffix}"
         seen_links |= keys
+        seen_links.add(rkey)
         job.url = official_url(job, cfg)
         seen_links |= link_keys(job.url)
         record = to_record(job, evaluation, opt, visa)
-        record["_score"] = score
+        record["_score"] = score  # internal: used to rank, never written to the sheet
         record["Match Score"] = match_percent(score, cfg)  # title-based for now; JD-based matcher comes later
         record["Top Matching Keywords"] = matched_keywords(job.title, cfg)
-        record["Submission Deadline"] = find_deadline(job.description)  # internal: used to rank, never written to the sheet
+        record["Submission Deadline"] = find_deadline(job.description)
         records.append(record)
         stats["new"] += 1
     return records, stats
