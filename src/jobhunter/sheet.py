@@ -61,10 +61,18 @@ def _to_date(value):
         return None
 
 
+ROLE_FILLER = {"graduate", "grad", "new", "college", "i", "1", "early", "career", "entry", "level",
+               "and", "the", "for", "of", "a", "ii", "2027", "2026", "university"}
+
+
 def role_key(company: str, title: str) -> str:
     """Same role at the same company (it may be posted once per city): one key."""
     clean = lambda text: re.sub(r"[^a-z0-9]", "", str(text).lower())  # ignore spacing and punctuation
-    return f"role:{clean(company)}|{clean(title)}"
+    # Ignore word order and level/new-grad filler, so "Electrical Hardware Engineer 1 Graduate" and
+    # "Graduate Electrical Hardware Engineer 1" are the same role.
+    words = re.findall(r"[a-z0-9]+", str(title).lower())
+    core = sorted({w for w in words if w not in ROLE_FILLER})
+    return f"role:{clean(company)}|{''.join(core)}"
 
 
 def build_row(headers: list[str], record: dict) -> list:
@@ -159,4 +167,14 @@ class Sheet:
         rows = [build_row(headers, record) for record in records]
         # USER_ENTERED lets Sheets parse YYYY-MM-DD as a real date (displayed as "Oct 27").
         worksheet.append_rows(rows, value_input_option="USER_ENTERED")
+        self._group_by_company(worksheet, headers)
         return len(rows)
+
+    @staticmethod
+    def _group_by_company(worksheet, headers: list[str]) -> None:
+        """Keep every company's roles together: sort by company, then strongest match first."""
+        if "Company Name" not in headers or "Match Score" not in headers:
+            return
+        company = headers.index("Company Name") + 1
+        score = headers.index("Match Score") + 1
+        worksheet.sort((company, "asc"), (score, "des"), range=f"A2:{chr(64 + len(headers))}")
