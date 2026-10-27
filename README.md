@@ -57,6 +57,12 @@ PYTHONPATH=src python -m jobhunter.main               # write
 ```
 Share the sheet with the service account's email (Editor) before the first full run.
 
-## Secrets
-Never commit credentials. In GitHub: Settings → Secrets and variables → Actions:
-`GOOGLE_SERVICE_ACCOUNT_JSON`, `SHEET_ID`, and (later, for scoring) `ANTHROPIC_API_KEY`.
+## Authentication
+Never commit credentials. The sheet writer picks its credentials like this:
+1. `GOOGLE_SERVICE_ACCOUNT_JSON` set → service-account key (only works where key creation is allowed).
+2. Otherwise → Application Default Credentials. In GitHub Actions this is keyless, via Workload
+   Identity Federation (`google-github-actions/auth`), so no key file exists to leak.
+
+GitHub secrets/variables (Settings → Secrets and variables → Actions): `SHEET_ID`; for keyless auth
+`GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_SERVICE_ACCOUNT`; later, for scoring, `ANTHROPIC_API_KEY`.
+Share the sheet with the service account's email (Editor) in either case.

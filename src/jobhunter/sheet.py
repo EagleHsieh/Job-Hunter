@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 JOBS_TAB = "Jobs"
 WATCHLIST_TAB = "Watchlist"
 LINK_HEADER = "Posting Link"
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 _KEEP_QUERY_KEYS = ("gh_jid=", "jid=", "id=")
 
 
@@ -33,10 +34,18 @@ class Sheet:
 
     @classmethod
     def from_env(cls) -> "Sheet":
+        """Authenticate with a service-account key if GOOGLE_SERVICE_ACCOUNT_JSON is set,
+        otherwise with Application Default Credentials (keyless: Workload Identity Federation)."""
         import gspread
 
-        credentials = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
-        client = gspread.service_account_from_dict(credentials)
+        raw_key = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+        if raw_key:
+            client = gspread.service_account_from_dict(json.loads(raw_key))
+        else:
+            import google.auth
+
+            credentials, _ = google.auth.default(scopes=SCOPES)
+            client = gspread.authorize(credentials)
         return cls(client.open_by_key(os.environ["SHEET_ID"]))
 
     def watchlist(self) -> list[dict]:
