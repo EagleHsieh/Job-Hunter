@@ -1,0 +1,49 @@
+# Edit freely. Matching is case-insensitive substring matching against the job TITLE.
+
+# A job is kept only if its title contains at least one of these.
+title_keywords:
+  # hardware / silicon
+  - hardware
+  - electrical
+  - electronics
+  - validation
+  - silicon
+  - asic
+  - rtl
+  - design engineer
+  - verification
+  - embedded
+  - firmware
+  - fpga
+  - signal integrity
+  - power integrity
+  - test engineer
+  - systems engineer
+  - system engineer
+  - board
+  - pcb
+  # quantum
+  - quantum
+  # quant trading / fintech
+  - quant
+  - trader
+  # consulting
+  - consultant
+  - business analyst
+  - associate
+
+# A job is dropped if its title contains any of these.
+title_exclude:
+  - sales
+  - recruiter
+  - marketing
+  - legal
+  - counsel
+  - account executive
+  - customer success
+  - nurse
+  - driver
+  - warehouse
+
+# Drop postings whose stated required experience exceeds this many years.
+max_required_years: 3
