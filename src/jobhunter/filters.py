@@ -113,6 +113,7 @@ class Config:
     early_career_bonus: int = 3
     trusted_category_bonus: int = 3
     min_score: int = 0
+    match_score_full: int = 25  # title score that counts as 100 in the Match Score column
     great_match_score: int = 15  # a company fed recently may reappear only with a role at least this good
     cooldown_days: int = 7  # "recently" = shown in the sheet within this many days (or already applied/engaged)
     recent_company_max: int = 1  # roles per run for a company in cooldown
@@ -135,6 +136,7 @@ class Config:
             early_career_bonus=int(data.get("early_career_bonus", 3)),
             trusted_category_bonus=int(data.get("trusted_category_bonus", 3)),
             min_score=int(data.get("min_score", 0)),
+            match_score_full=int(data.get("match_score_full", 25)),
             great_match_score=int(data.get("great_match_score", 15)),
             cooldown_days=int(data.get("cooldown_days", 7)),
             recent_company_max=int(data.get("recent_company_max", 1)),

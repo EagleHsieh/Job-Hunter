@@ -1,10 +1,10 @@
 from collections import Counter
 from datetime import date
 
-from .extract import NOT_STATED, snippets
+from .extract import NOT_STATED, find_deadline, snippets
 from .filters import Config, Evaluation, evaluate
 from .models import Job
-from .rank import title_score
+from .rank import match_percent, matched_keywords, title_score
 from .sheet import job_id, link_keys
 
 
@@ -60,7 +60,10 @@ def process(jobs: list[Job], cfg: Config, seen_links: set[str]):
         job.url = official_url(job, cfg)
         seen_links |= link_keys(job.url)
         record = to_record(job, evaluation, opt, visa)
-        record["_score"] = score  # internal: used to rank, never written to the sheet
+        record["_score"] = score
+        record["Match Score"] = match_percent(score, cfg)  # title-based for now; JD-based matcher comes later
+        record["Top Matching Keywords"] = matched_keywords(job.title, cfg)
+        record["Submission Deadline"] = find_deadline(job.description)  # internal: used to rank, never written to the sheet
         records.append(record)
         stats["new"] += 1
     return records, stats
