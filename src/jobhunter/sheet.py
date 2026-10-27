@@ -3,12 +3,15 @@
 import json
 import os
 import re
+from datetime import date, timedelta
 from urllib.parse import urlsplit
 
 JOBS_TAB = "Jobs"
 WATCHLIST_TAB = "Watchlist"
 LINK_HEADER = "Posting Link"
 COMPANY_HEADER = "Company Name"
+ADDED_HEADER = "Date Added"
+ENGAGED_STATUSES = {"applied", "interview", "offer", "rejected"}
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 _KEEP_QUERY_KEYS = ("gh_jid=", "jid=", "id=")
 
@@ -48,6 +51,16 @@ def link_keys(url: str) -> set[str]:
     return keys
 
 
+def _to_date(value):
+    """A Sheets date serial number, or an ISO 'YYYY-MM-DD' string; None when unreadable."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return date(1899, 12, 30) + timedelta(days=int(value))
+    try:
+        return date.fromisoformat(str(value).strip()[:10])
+    except ValueError:
+        return None
+
+
 def build_row(headers: list[str], record: dict) -> list:
     """Align a record (keyed by header name) to the sheet's current column order."""
     return [record.get(header, "") for header in headers]
@@ -75,6 +88,32 @@ class Sheet:
 
     def watchlist(self) -> list[dict]:
         return self._sheet.worksheet(WATCHLIST_TAB).get_all_records()
+
+    def recent_companies(self, days: int, today: date | None = None) -> set[str]:
+        """Companies shown in the sheet within `days` days (Date Added), or whose Status shows you applied,
+        interviewed, got an offer or a rejection. Used to avoid feeding the same employer day after day."""
+        worksheet = self._sheet.worksheet(JOBS_TAB)
+        headers = worksheet.row_values(1)
+        if COMPANY_HEADER not in headers:
+            return set()
+        today = today or date.today()
+        raw = {"value_render_option": "UNFORMATTED_VALUE"}  # dates come back as serial numbers, not "Oct 27"
+
+        def column(name):
+            return worksheet.col_values(headers.index(name) + 1, **raw)[1:] if name in headers else []
+
+        companies, added, status = column(COMPANY_HEADER), column(ADDED_HEADER), column("Status")
+        recent: set[str] = set()
+        for i, company in enumerate(companies):
+            key = str(company).strip().lower()
+            if not key:
+                continue
+            when = _to_date(added[i]) if i < len(added) else None
+            if when and today - when <= timedelta(days=days):
+                recent.add(key)
+            if i < len(status) and str(status[i]).strip().lower() in ENGAGED_STATUSES:
+                recent.add(key)
+        return recent
 
     def existing_links(self) -> set[str]:
         worksheet = self._sheet.worksheet(JOBS_TAB)

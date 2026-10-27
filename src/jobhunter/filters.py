@@ -44,6 +44,24 @@ HARD_EXCLUDE = re.compile(
     ),
     re.IGNORECASE,
 )
+# The posting itself says it will not take F-1/OPT candidates or sponsor visas: a clear no.
+NO_SPONSORSHIP = re.compile(
+    "|".join(
+        [
+            r"(?:will|do(?:es)?|can|could|would)\s+not\s+(?:be\s+able\s+to\s+)?(?:provide\s+|offer\s+)?(?:visa\s+|work\s+visa\s+|immigration\s+)?sponsor",
+            r"(?:unable|not\s+able)\s+to\s+(?:provide\s+|offer\s+)?(?:visa\s+|immigration\s+)?sponsor",
+            r"\bcannot\s+(?:provide\s+|offer\s+)?(?:visa\s+|immigration\s+)?sponsor",
+            r"\bno\s+(?:visa\s+|work\s+visa\s+|immigration\s+)?sponsorship",
+            r"(?:without|not\s+(?:require|need))\s+(?:the\s+need\s+for\s+)?(?:current\s+or\s+future\s+|now\s+or\s+in\s+the\s+future\s+)?(?:visa\s+|immigration\s+|employer\s+)?sponsorship",
+            r"not\s+(?:eligible|available)\s+for\s+(?:visa\s+|immigration\s+)?sponsorship",
+            r"sponsorship\s+(?:is\s+)?(?:not\s+(?:available|offered|provided)|unavailable)",
+            r"\bno\s+(?:opt|cpt|f-?1)\b",
+            r"\b(?:opt|cpt|f-?1)(?:\s+(?:visa|students?|candidates?|status))?\s+(?:is|are)?\s*not\s+(?:accepted|eligible|available|considered|supported|permitted)",
+            r"not\s+(?:accept|consider|hire)\w*\s+(?:\w+\s+){0,3}(?:opt|cpt|f-?1|student\s+visa)",
+        ]
+    ),
+    re.IGNORECASE,
+)
 # Ambiguous language: kept, but flagged in the sheet.
 EXPORT_CONTROL = re.compile(r"export[- ]control", re.IGNORECASE)
 
@@ -90,10 +108,14 @@ class Config:
     max_required_years: int = 3
     official_links: dict[str, str] = field(default_factory=dict)  # company (lowercase) -> URL with {id}
     max_per_company: int = 5
+    max_new_per_day: int = 0  # 0 = no overall cap
     title_weights: dict[str, int] = field(default_factory=dict)
     early_career_bonus: int = 3
     trusted_category_bonus: int = 3
     min_score: int = 0
+    great_match_score: int = 15  # a company fed recently may reappear only with a role at least this good
+    cooldown_days: int = 7  # "recently" = shown in the sheet within this many days (or already applied/engaged)
+    recent_company_max: int = 1  # roles per run for a company in cooldown
     exclude_company_patterns: list[str] = field(default_factory=list)
     keep_companies: list[str] = field(default_factory=list)
     discovery_categories: list[str] = field(default_factory=list)  # lists to scan for unknown companies
@@ -108,10 +130,14 @@ class Config:
             max_required_years=int(data.get("max_required_years", 3)),
             official_links={k.lower(): v for k, v in (data.get("official_links") or {}).items()},
             max_per_company=int(data.get("max_per_company", 5)),
+            max_new_per_day=int(data.get("max_new_per_day", 0)),
             title_weights={k.lower(): int(v) for k, v in (data.get("title_weights") or {}).items()},
             early_career_bonus=int(data.get("early_career_bonus", 3)),
             trusted_category_bonus=int(data.get("trusted_category_bonus", 3)),
             min_score=int(data.get("min_score", 0)),
+            great_match_score=int(data.get("great_match_score", 15)),
+            cooldown_days=int(data.get("cooldown_days", 7)),
+            recent_company_max=int(data.get("recent_company_max", 1)),
             exclude_company_patterns=[str(x).lower() for x in data.get("exclude_company_patterns", [])],
             keep_companies=[str(x).lower() for x in data.get("keep_companies", [])],
             discovery_categories=list((data.get("discovery") or {}).get("categories", [])),
@@ -163,6 +189,8 @@ def evaluate(job: Job, cfg: Config) -> Evaluation:
     text = f"{job.title}\n{job.description}"
     if HARD_EXCLUDE.search(text):
         return Evaluation(False, "US citizenship/person or clearance required")
+    if NO_SPONSORSHIP.search(text):
+        return Evaluation(False, "says no OPT / F-1 / visa sponsorship")
     if not is_us_location(job.location):
         return Evaluation(False, "non-US or unspecified location")
     if NOT_FULL_TIME.search(job.title) or NOT_FULL_TIME.search(job.commitment or ""):
