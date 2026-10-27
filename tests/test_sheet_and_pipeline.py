@@ -29,6 +29,10 @@ class FakeWorksheet:
         header, *body = self.rows
         return [dict(zip(header, row)) for row in body]
 
+    def insert_rows(self, rows, row=1, value_input_option=None, inherit_from_before=False):
+        self.rows[row - 1 : row - 1] = [list(r) for r in rows]
+        self.inserted = getattr(self, "inserted", []) + [(row, inherit_from_before)]
+
     def append_rows(self, rows, value_input_option=None):
         self.appended.extend(rows)
         self.options = value_input_option
@@ -209,3 +213,54 @@ def test_excluded_companies_from_watchlist():
 
     rows = [{"Company": "Epic", "Sponsorship Notes": "Excluded: does not sponsor"}, {"Company": "IMC", "Sponsorship Notes": ""}]
     assert excluded_companies(rows) == {"epic"}
+
+
+def test_new_rows_are_grouped_under_their_company():
+    def row(company, role):
+        out = [""] * len(HEADERS)
+        out[HEADERS.index("Company Name")], out[HEADERS.index("Role")] = company, role
+        return out
+
+    tab = FakeWorksheet([HEADERS, row("IMC", "a"), row("IMC", "b"), row("Optiver", "c"), row("NVIDIA", "d")])
+    sheet = Sheet(FakeSpreadsheet({"Jobs": tab}))
+    records = [
+        {"Company Name": "Optiver", "Role": "c2"},
+        {"Company Name": "IMC", "Role": "a2"},
+        {"Company Name": "IMC", "Role": "a3"},
+        {"Company Name": "Apple", "Role": "x"},
+        {"Company Name": "Apple", "Role": "y"},
+    ]
+    assert sheet.append_jobs(records) == 5
+    order = [(r[HEADERS.index("Company Name")], r[HEADERS.index("Role")]) for r in tab.rows[1:]]
+    assert order == [("IMC", "a"), ("IMC", "b"), ("IMC", "a2"), ("IMC", "a3"), ("Optiver", "c"), ("Optiver", "c2"),
+                     ("NVIDIA", "d")]
+    # New company Apple goes at the end together, in the order given.
+    assert [(r[HEADERS.index("Company Name")], r[HEADERS.index("Role")]) for r in tab.appended] == [("Apple", "x"), ("Apple", "y")]
+    assert all(flag for _, flag in tab.inserted)  # inherit dropdowns/formats from the row above
+
+
+def test_limit_per_company_keeps_best_five_and_collapses_same_title():
+    from jobhunter.rank import limit_per_company, title_score
+
+    cfg = Config(title_keywords=[], title_exclude=[], title_weights={"verification": 7, "software": -4})
+    assert title_score("Software Engineer", cfg) == -4
+    assert title_score("ASIC Verification Engineer", cfg) == 7
+    rows = [{"Company Name": "Apple", "Role": f"R{i}", "_score": i, "Role Posting Date": ""} for i in range(8)]
+    rows += [{"Company Name": "Apple", "Role": "R7", "_score": 7, "Role Posting Date": ""}]  # same title, other city
+    rows += [{"Company Name": "IMC", "Role": "Q", "_score": 20, "Role Posting Date": "2026-10-01"}]
+    kept, dropped = limit_per_company(rows, 5)
+    assert [r["Company Name"] for r in kept] == ["IMC"] + ["Apple"] * 5  # strongest company first
+    assert [r["Role"] for r in kept[1:]] == ["R7", "R6", "R5", "R4", "R3"]
+    assert dropped == 4  # R0-R2 beyond five, plus the repeated R7
+
+
+def test_school_employers_are_dropped_but_company_named_university_is_kept():
+    from pathlib import Path
+
+    from jobhunter.filters import evaluate
+
+    cfg = Config.from_yaml(Path(__file__).resolve().parents[1] / "config" / "targets.yaml")
+    school = evaluate(make_job(company="Pennsylvania State University", title="Hardware Engineer"), cfg)
+    assert not school.keep and "school" in school.reason
+    assert not evaluate(make_job(company="Boston College", title="Hardware Engineer"), cfg).keep
+    assert evaluate(make_job(company="Akuna Capital University", title="Hardware Engineer"), cfg).keep

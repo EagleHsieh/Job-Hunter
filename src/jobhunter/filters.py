@@ -89,6 +89,11 @@ class Config:
     title_exclude: list[str] = field(default_factory=list)
     max_required_years: int = 3
     official_links: dict[str, str] = field(default_factory=dict)  # company (lowercase) -> URL with {id}
+    max_per_company: int = 5
+    title_weights: dict[str, int] = field(default_factory=dict)
+    early_career_bonus: int = 3
+    exclude_company_patterns: list[str] = field(default_factory=list)
+    keep_companies: list[str] = field(default_factory=list)
     discovery_categories: list[str] = field(default_factory=list)  # lists to scan for unknown companies
     trusted_categories: list[str] = field(default_factory=list)  # skip the title-keyword check for these
 
@@ -100,6 +105,11 @@ class Config:
             title_exclude=[k.lower() for k in data.get("title_exclude", [])],
             max_required_years=int(data.get("max_required_years", 3)),
             official_links={k.lower(): v for k, v in (data.get("official_links") or {}).items()},
+            max_per_company=int(data.get("max_per_company", 5)),
+            title_weights={k.lower(): int(v) for k, v in (data.get("title_weights") or {}).items()},
+            early_career_bonus=int(data.get("early_career_bonus", 3)),
+            exclude_company_patterns=[str(x).lower() for x in data.get("exclude_company_patterns", [])],
+            keep_companies=[str(x).lower() for x in data.get("keep_companies", [])],
             discovery_categories=list((data.get("discovery") or {}).get("categories", [])),
             trusted_categories=list((data.get("discovery") or {}).get("trusted_categories", [])),
         )
@@ -135,7 +145,17 @@ def required_years(description: str):
     return max(years) if years else None
 
 
+def is_excluded_employer(company: str, cfg: Config) -> bool:
+    """Schools and universities: you want industry roles."""
+    low = company.strip().lower()
+    if low in cfg.keep_companies:
+        return False
+    return any(re.search(pattern, low) for pattern in cfg.exclude_company_patterns)
+
+
 def evaluate(job: Job, cfg: Config) -> Evaluation:
+    if is_excluded_employer(job.company, cfg):
+        return Evaluation(False, "school/university employer")
     text = f"{job.title}\n{job.description}"
     if HARD_EXCLUDE.search(text):
         return Evaluation(False, "US citizenship/person or clearance required")

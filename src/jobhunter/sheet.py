@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 JOBS_TAB = "Jobs"
 WATCHLIST_TAB = "Watchlist"
 LINK_HEADER = "Posting Link"
+COMPANY_HEADER = "Company Name"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 _KEEP_QUERY_KEYS = ("gh_jid=", "jid=", "id=")
 
@@ -86,11 +87,31 @@ class Sheet:
         return seen
 
     def append_jobs(self, records: list[dict]) -> int:
+        """Add rows, keeping each company's roles together: a company already in the sheet gets its new
+        rows right under its existing ones (inheriting dropdowns and formats); new companies go at the end."""
         if not records:
             return 0
         worksheet = self._sheet.worksheet(JOBS_TAB)
         headers = worksheet.row_values(1)
-        rows = [build_row(headers, record) for record in records]
+        name_column = headers.index(COMPANY_HEADER) + 1
+        last_row: dict[str, int] = {}
+        for row_number, name in enumerate(worksheet.col_values(name_column), start=1):
+            if row_number > 1 and name.strip():
+                last_row[name.strip().lower()] = row_number
+
+        by_company: dict[str, list[list]] = {}
+        for record in records:
+            key = str(record.get(COMPANY_HEADER, "")).strip().lower()
+            by_company.setdefault(key, []).append(build_row(headers, record))
+
         # USER_ENTERED lets Sheets parse YYYY-MM-DD as a real date (displayed as "Oct 27").
-        worksheet.append_rows(rows, value_input_option="USER_ENTERED")
-        return len(rows)
+        # Insert from the bottom up so earlier insert positions stay valid.
+        existing = sorted((k for k in by_company if k in last_row), key=lambda k: -last_row[k])
+        for key in existing:
+            worksheet.insert_rows(
+                by_company[key], row=last_row[key] + 1, value_input_option="USER_ENTERED", inherit_from_before=True
+            )
+        fresh = [row for key, rows in by_company.items() if key not in last_row for row in rows]
+        if fresh:
+            worksheet.append_rows(fresh, value_input_option="USER_ENTERED")
+        return len(records)
