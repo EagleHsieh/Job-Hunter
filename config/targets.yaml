@@ -78,3 +78,45 @@ official_links:
 discovery:
   categories: [Hardware, Quant]
   trusted_categories: [Hardware]
+
+# Per company, per run: only the best-matching roles reach the sheet (same title in several cities counts once).
+max_per_company: 5
+
+# Roles at schools and universities are skipped; you want industry. Regex on the lowercase company name.
+exclude_company_patterns:
+  - '\buniversity\b'
+  - '\bcollege\b'
+  - 'institute of technology'
+# Exceptions: employers whose name contains one of those words but are companies.
+keep_companies:
+  - akuna capital university
+
+# How well a title fits you (EE/IC/validation/signal integrity, then quant). A keyword adds its weight once.
+# Used only to pick each company's top roles; edit freely.
+early_career_bonus: 3
+title_weights:
+  signal integrity: 10
+  power integrity: 10
+  validation: 8
+  verification: 7
+  hardware: 7
+  mixed signal: 7
+  mixed-signal: 7
+  analog: 6
+  asic: 6
+  rtl: 6
+  fpga: 6
+  silicon: 6
+  digital design: 5
+  design engineer: 5
+  electrical: 5
+  board: 5
+  pcb: 5
+  quantum: 5
+  trader: 5
+  quant: 4
+  test engineer: 4
+  embedded: 3
+  firmware: 3
+  systems engineer: 2
+  software: -4

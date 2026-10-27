@@ -3,6 +3,7 @@ from collections import Counter
 from .extract import NOT_STATED, snippets
 from .filters import Config, Evaluation, evaluate
 from .models import Job
+from .rank import title_score
 from .sheet import job_id, link_keys
 
 
@@ -52,6 +53,8 @@ def process(jobs: list[Job], cfg: Config, seen_links: set[str]):
         seen_links |= keys
         job.url = official_url(job, cfg)
         seen_links |= link_keys(job.url)
-        records.append(to_record(job, evaluation, opt, visa))
+        record = to_record(job, evaluation, opt, visa)
+        record["_score"] = title_score(job.title, cfg)  # internal: used to rank, never written to the sheet
+        records.append(record)
         stats["new"] += 1
     return records, stats

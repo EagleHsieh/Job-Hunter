@@ -17,6 +17,7 @@ from .fetchers import FETCHERS, board_token, simplify
 from .fetchers.base import BoardNotFound, FetchError
 from .filters import Config
 from .pipeline import process
+from .rank import limit_per_company
 
 log = logging.getLogger("jobhunter")
 DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "config" / "targets.yaml"
@@ -116,6 +117,10 @@ def run(args) -> int:
             all_records.extend(records)
             log.info("discovery: %d listings, %d new", len(found), len(records))
 
+    all_records, dropped = limit_per_company(all_records, cfg.max_per_company)
+    if dropped:
+        totals[f"skipped: beyond top {cfg.max_per_company} per company (or same title again)"] += dropped
+
     if args.max_new:
         all_records = all_records[: args.max_new]
 
@@ -124,7 +129,7 @@ def run(args) -> int:
 
     if args.dry_run or sheet is None:
         for record in all_records:
-            print(" | ".join(str(record[k]) for k in ("Company Name", "Role", "Location", "Posting Link")))
+            print(" | ".join([str(record.get("_score", ""))] + [str(record[k]) for k in ("Company Name", "Role", "Location", "Posting Link")]))
         log.info("dry run: %d rows would be added", len(all_records))
         return 0
 
