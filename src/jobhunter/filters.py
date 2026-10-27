@@ -66,6 +66,17 @@ EARLY_DESCRIPTION = re.compile(
     r"\b0\s*(?:-|–|to)\s*[123]\s*years",
     re.IGNORECASE,
 )
+# Shift-based monitoring/operations work, not an engineering role.
+SHIFT_WORK = re.compile(
+    r"shift work|work shifts?|shift schedule|\b(?:rotating|night|overnight|weekend|swing|12[- ]hour)\s+shifts?\b",
+    re.IGNORECASE,
+)
+# PhD-level language, and the degrees that would make a role open to a master's student.
+PHD_MENTION = re.compile(r"\bph\.?d\.?\b|\bdoctorate\b|\bdoctoral\b|\bpost-?doc\w*", re.IGNORECASE)
+NON_PHD_DEGREE = re.compile(
+    r"\bmaster'?s?\b|\bm\.?s\.?\b|\bmeng\b|\bbachelor'?s?\b|\bb\.?s\.?\b|\bundergraduate\b|\bbsc\b|\bmsc\b",
+    re.IGNORECASE,
+)
 YEARS_REQUIRED = re.compile(
     r"(\d{1,2})(?:\s*(?:-|–|to)\s*\d{1,2})?\s*\+?\s*(?:years?|yrs?)[^.\n]{0,80}?experience",
     re.IGNORECASE,
@@ -130,6 +141,10 @@ def evaluate(job: Job, cfg: Config) -> Evaluation:
         return Evaluation(False, "not full-time")
     if SENIOR_TITLE.search(job.title):
         return Evaluation(False, "senior title")
+    if SHIFT_WORK.search(job.description):
+        return Evaluation(False, "shift work")
+    if PHD_MENTION.search(job.description) and not NON_PHD_DEGREE.search(job.description):
+        return Evaluation(False, "PhD-level role")
     years = required_years(job.description)
     if years is not None and years > cfg.max_required_years:
         return Evaluation(False, f"requires more than {cfg.max_required_years} years")
