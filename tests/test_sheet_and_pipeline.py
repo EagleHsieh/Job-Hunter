@@ -105,6 +105,30 @@ def test_sheet_writer_roundtrip():
     assert sheet.append_jobs([]) == 0
 
 
+def test_from_env_uses_keyless_default_credentials_when_no_key(monkeypatch):
+    import google.auth
+    import gspread
+
+    calls = {}
+    fake_creds = object()
+    monkeypatch.delenv("GOOGLE_SERVICE_ACCOUNT_JSON", raising=False)
+    monkeypatch.setenv("SHEET_ID", "sheet-123")
+    monkeypatch.setattr(
+        google.auth, "default", lambda scopes=None: (calls.setdefault("scopes", scopes) and fake_creds, "proj")
+    )
+
+    class FakeClient:
+        def open_by_key(self, key):
+            calls["key"] = key
+            return FakeSpreadsheet({})
+
+    monkeypatch.setattr(gspread, "authorize", lambda creds: calls.setdefault("creds", creds) and FakeClient())
+    Sheet.from_env()
+    assert calls["key"] == "sheet-123"
+    assert calls["scopes"] == ["https://www.googleapis.com/auth/spreadsheets"]
+    assert calls["creds"] is fake_creds
+
+
 def test_targets_from_watchlist_skips_unready_and_excluded():
     rows = [
         {"Company": "Ready", "ATS Type": "Greenhouse", "Board URL / Token": "ready", "Industry": "AI", "Sponsorship Notes": ""},
