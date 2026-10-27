@@ -29,9 +29,11 @@ jobs:
       - name: Gate (7 AM Central only for scheduled runs)
         id: gate
         run: |
+          # GitHub cron can start late, so accept 07:00-08:59 Central. In summer both cron entries land in
+          # that window; the second run finds nothing new (dedupe + daily limit), so it is harmless.
           hour="$(TZ=America/Chicago date +%H)"
-          if [ "${{ github.event_name }}" = "schedule" ] && [ "$hour" != "07" ]; then
-            echo "Central hour is $hour, not 07: skipping."
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$hour" != "07" ] && [ "$hour" != "08" ]; then
+            echo "Central hour is $hour, not 07-08: skipping."
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
