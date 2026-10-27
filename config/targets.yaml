@@ -44,6 +44,23 @@ title_exclude:
   - nurse
   - driver
   - warehouse
+  # seen in the first dry run: matched a keyword but are not your target roles
+  - phd
+  - postdoc
+  - technician
+  - it systems
+  - customer service
+  - web design
+  - investor relations
+  - capital markets
+  - planner
+  - construction
+  - biology
 
 # Drop postings whose stated required experience exceeds this many years.
 max_required_years: 3
+
+# Prefer the company's own application page over a job-board link. {id} is the posting id from the feed.
+# Companies not listed here keep the link the feed provides.
+official_links:
+  imc: "https://www.imc.com/us/careers/jobs/{id}"

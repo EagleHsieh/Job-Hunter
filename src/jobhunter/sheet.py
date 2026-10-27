@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from urllib.parse import urlsplit
 
 JOBS_TAB = "Jobs"
@@ -21,6 +22,29 @@ def normalize_url(url: str) -> str:
     if keep:
         key += "?" + "&".join(keep)
     return key.lower()
+
+
+_JOB_ID = re.compile(r"(?:gh_jid=|jid=|/)(\d{6,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#&]|$)", re.I)
+
+
+def job_id(url: str) -> str:
+    """The posting's id (Greenhouse number, Lever/Ashby UUID), or "" when the link has none."""
+    match = _JOB_ID.search((url or "").strip())
+    return match.group(1).lower() if match else ""
+
+
+def link_keys(url: str) -> set[str]:
+    """Keys that identify a posting. The id key makes the ATS link and the company's own link
+    for the same job match each other, so switching a sheet link to the official page does not
+    make the job look new."""
+    keys = set()
+    normalized = normalize_url(url)
+    if normalized:
+        keys.add(normalized)
+        ident = job_id(url)
+        if ident:
+            keys.add(f"id:{ident}")
+    return keys
 
 
 def build_row(headers: list[str], record: dict) -> list:
@@ -55,7 +79,11 @@ class Sheet:
         worksheet = self._sheet.worksheet(JOBS_TAB)
         headers = worksheet.row_values(1)
         column = headers.index(LINK_HEADER) + 1
-        return {normalize_url(value) for value in worksheet.col_values(column)[1:] if value}
+        seen: set[str] = set()
+        for value in worksheet.col_values(column)[1:]:
+            if value:
+                seen |= link_keys(value)
+        return seen
 
     def append_jobs(self, records: list[dict]) -> int:
         if not records:

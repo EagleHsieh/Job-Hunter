@@ -77,6 +77,7 @@ class Config:
     title_keywords: list[str] = field(default_factory=list)
     title_exclude: list[str] = field(default_factory=list)
     max_required_years: int = 3
+    official_links: dict[str, str] = field(default_factory=dict)  # company (lowercase) -> URL with {id}
 
     @classmethod
     def from_yaml(cls, path) -> "Config":
@@ -85,6 +86,7 @@ class Config:
             title_keywords=[k.lower() for k in data.get("title_keywords", [])],
             title_exclude=[k.lower() for k in data.get("title_exclude", [])],
             max_required_years=int(data.get("max_required_years", 3)),
+            official_links={k.lower(): v for k, v in (data.get("official_links") or {}).items()},
         )
 
 
