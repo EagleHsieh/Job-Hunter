@@ -63,7 +63,7 @@ def _to_date(value):
 
 def role_key(company: str, title: str) -> str:
     """Same role at the same company (it may be posted once per city): one key."""
-    clean = lambda text: re.sub(r"\s+", " ", str(text).strip().lower())
+    clean = lambda text: re.sub(r"[^a-z0-9]", "", str(text).lower())  # ignore spacing and punctuation
     return f"role:{clean(company)}|{clean(title)}"
 
 

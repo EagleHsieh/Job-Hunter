@@ -395,3 +395,10 @@ def test_count_added_on_counts_only_that_day():
     serial = (date(2026, 10, 27) - date(1899, 12, 30)).days
     tab = Unformatted([headers, row(serial), row("2026-10-27"), row("2026-10-26"), row("")])
     assert Sheet(FakeSpreadsheet({"Jobs": tab})).count_added_on(date(2026, 10, 27)) == 2
+
+
+def test_role_key_ignores_spacing_and_punctuation():
+    from jobhunter.sheet import role_key
+
+    assert role_key("RTX", "FPGA/ Digital Design Engineer 1") == role_key("rtx", "FPGA/Digital  Design Engineer 1")
+    assert role_key("RTX", "Design Engineer 1") != role_key("RTX", "Design Engineer 2")
