@@ -46,3 +46,19 @@ def _neg_date(value: str):
     # Newer first: invert the digits of YYYY-MM-DD; blank dates sort last.
     digits = "".join(ch for ch in str(value) if ch.isdigit())
     return -int(digits) if digits else 0
+
+
+def limit_total(records: list[dict], cap: int):
+    """Keep the `cap` highest-scoring records overall (ties: newest posting), preserving the grouped order.
+
+    Roles that miss the cut are not marked as seen, so they come back on later days as the queue drains.
+    Returns (kept, number dropped).
+    """
+    if not cap or len(records) <= cap:
+        return records, 0
+    ranked = sorted(
+        range(len(records)),
+        key=lambda i: (-records[i].get("_score", 0), _neg_date(records[i].get("Role Posting Date", "")), i),
+    )
+    keep = set(ranked[:cap])
+    return [r for i, r in enumerate(records) if i in keep], len(records) - cap

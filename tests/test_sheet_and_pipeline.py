@@ -280,3 +280,18 @@ def test_low_scoring_titles_are_left_out_of_the_sheet():
     assert [r["Role"] for r in records] == ["Hardware Engineer, New Grad"]
     assert records[0]["_score"] == 10
     assert stats["rejected: low title match (score under 3)"] == 2
+
+
+def test_daily_limit_keeps_top_scores_in_grouped_order():
+    from jobhunter.rank import limit_total
+
+    rows = [
+        {"Company Name": "A", "Role": "a1", "_score": 9},
+        {"Company Name": "A", "Role": "a2", "_score": 3},
+        {"Company Name": "B", "Role": "b1", "_score": 7},
+        {"Company Name": "C", "Role": "c1", "_score": 8},
+    ]
+    kept, over = limit_total(rows, 3)
+    assert [r["Role"] for r in kept] == ["a1", "b1", "c1"] and over == 1
+    assert limit_total(rows, 0) == (rows, 0)
+    assert limit_total(rows, 10) == (rows, 0)

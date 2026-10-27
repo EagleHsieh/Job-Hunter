@@ -17,7 +17,7 @@ from .fetchers import FETCHERS, board_token, simplify
 from .fetchers.base import BoardNotFound, FetchError
 from .filters import Config
 from .pipeline import process
-from .rank import limit_per_company
+from .rank import limit_per_company, limit_total
 
 log = logging.getLogger("jobhunter")
 DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "config" / "targets.yaml"
@@ -120,6 +120,10 @@ def run(args) -> int:
     all_records, dropped = limit_per_company(all_records, cfg.max_per_company)
     if dropped:
         totals[f"skipped: beyond top {cfg.max_per_company} per company (or same title again)"] += dropped
+
+    all_records, over = limit_total(all_records, cfg.max_new_per_day)
+    if over:
+        totals[f"deferred: over today's limit of {cfg.max_new_per_day} (shown on later days)"] += over
 
     if args.max_new:
         all_records = all_records[: args.max_new]
