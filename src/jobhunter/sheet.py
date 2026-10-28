@@ -1,6 +1,7 @@
 """Google Sheets access. Columns are matched by header name, so reordering columns is safe."""
 
 import json
+import logging
 import os
 import re
 from datetime import date, timedelta
@@ -60,6 +61,8 @@ def _to_date(value):
     except ValueError:
         return None
 
+
+log = logging.getLogger(__name__)
 
 ROLE_FILLER = {"graduate", "grad", "new", "college", "i", "1", "early", "career", "entry", "level",
                "and", "the", "for", "of", "a", "ii", "2027", "2026", "university"}
@@ -177,4 +180,9 @@ class Sheet:
             return
         company = headers.index("Company Name") + 1
         score = headers.index("Match Score") + 1
-        worksheet.sort((company, "asc"), (score, "des"), range=f"A2:{chr(64 + len(headers))}")
+        last_column = chr(64 + len(headers))
+        try:
+            # gspread needs an explicit end row ("A2:R" alone raises), so use the sheet's row count.
+            worksheet.sort((company, "asc"), (score, "des"), range=f"A2:{last_column}{worksheet.row_count}")
+        except Exception as exc:  # the rows are already written: never fail the whole run over ordering
+            log.warning("could not group rows by company: %s", exc)
