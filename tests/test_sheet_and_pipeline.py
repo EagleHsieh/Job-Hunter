@@ -18,6 +18,10 @@ class FakeWorksheet:
         self.rows = rows
         self.appended = []
         self.options = None
+        self.sorted_by = None
+
+    def sort(self, *specs, range=None):
+        self.sorted_by = (specs, range)
 
     def row_values(self, index):
         return self.rows[index - 1]
@@ -402,3 +406,11 @@ def test_role_key_ignores_spacing_and_punctuation():
 
     assert role_key("RTX", "FPGA/ Digital Design Engineer 1") == role_key("rtx", "FPGA/Digital  Design Engineer 1")
     assert role_key("RTX", "Design Engineer 1") != role_key("RTX", "Design Engineer 2")
+
+
+def test_role_key_ignores_word_order_and_graduate_filler():
+    from jobhunter.sheet import role_key
+
+    assert role_key("HPE", "Electrical Hardware Engineer 1 Graduate") == role_key("HPE", "Graduate Electrical Hardware Engineer 1")
+    assert role_key("HPE", "Electrical Hardware Engineer Graduate") == role_key("HPE", "Electrical Hardware Engineer 1 Graduate")
+    assert role_key("HPE", "Electrical Design Engineer Graduate") != role_key("HPE", "Electrical Hardware Engineer Graduate")
