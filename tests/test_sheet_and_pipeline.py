@@ -20,7 +20,13 @@ class FakeWorksheet:
         self.options = None
         self.sorted_by = None
 
+    row_count = 120
+
     def sort(self, *specs, range=None):
+        from gspread.utils import a1_to_rowcol  # same parsing gspread does: an open-ended "R" must not be passed
+
+        for cell in range.split(":"):
+            a1_to_rowcol(cell)
         self.sorted_by = (specs, range)
 
     def row_values(self, index):
