@@ -167,10 +167,12 @@ def test_citizen_or_permanent_resident_only_is_dropped(text):
     assert not evaluate(job(description=text), CFG).keep
 
 
-def test_rd_design_outranks_fab_packaging_equipment():
+def test_unwanted_fab_packaging_equipment_roles_score_low_and_others_are_unaffected():
     from jobhunter.rank import title_score
 
     cfg = CFG_FROM_FILE
-    assert title_score("Semiconductor R&D Design Engineer", cfg) > title_score("Packaging Process Engineer", cfg)
     assert title_score("Equipment Engineer, Fabrication", cfg) < cfg.min_score
+    assert title_score("Packaging Process Engineer", cfg) < cfg.min_score
+    # R&D / design / hardware / IC design roles are not boosted or penalized by the new keywords.
+    assert title_score("Semiconductor R&D Design Engineer", cfg) == title_score("Semiconductor Design Engineer", cfg)
     assert "rtx" in cfg.blocked_companies
