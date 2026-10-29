@@ -54,8 +54,8 @@ def limit_company_total(records: list[dict], existing: dict[str, list[float]], c
     """Cap how many roles one company can have in the sheet overall (not just per day).
 
     `existing` maps a lower-case company name to the Match Scores of its rows already in the sheet.
-    Once a company has `cap` rows, a new role is added only if its Match Score beats every role the
-    company already has (a better role than anything you have seen there). Returns (kept, dropped).
+    Once a company has `cap` rows, a new role is added only if its Match Score is higher than the lowest-scoring
+    role the company already has (it improves on what you have there). Returns (kept, dropped).
     """
     scores = {company: list(values) for company, values in existing.items()}
     kept, dropped = [], 0
@@ -63,7 +63,7 @@ def limit_company_total(records: list[dict], existing: dict[str, list[float]], c
         company = record["Company Name"].strip().lower()
         have = scores.setdefault(company, [])
         score = _number(record.get("Match Score"))
-        if cap and len(have) >= cap and not (have and score > max(have)):
+        if cap and len(have) >= cap and not (have and score > min(have)):
             dropped += 1
             continue
         have.append(score)

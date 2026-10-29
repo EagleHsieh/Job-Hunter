@@ -422,7 +422,7 @@ def test_role_key_ignores_word_order_and_graduate_filler():
     assert role_key("HPE", "Electrical Design Engineer Graduate") != role_key("HPE", "Electrical Hardware Engineer Graduate")
 
 
-def test_company_total_cap_allows_only_a_better_role_once_full():
+def test_company_total_cap_allows_only_a_role_better_than_the_weakest_once_full():
     from jobhunter.rank import limit_company_total
 
     def rec(company, role, score):
@@ -430,14 +430,14 @@ def test_company_total_cap_allows_only_a_better_role_once_full():
 
     existing = {"nvidia": [84, 76, 76], "micron technology": [92, 88]}
     records = [
-        rec("NVIDIA", "Better role", 90),  # beats 84 -> kept
-        rec("NVIDIA", "Equal role", 84),  # not higher than the best -> dropped
+        rec("NVIDIA", "Better than weakest", 80),  # 80 > 76 -> kept
+        rec("NVIDIA", "Equal to weakest", 76),  # not higher than the lowest (still 76) -> dropped
         rec("Micron Technology", "A", 70),  # company has room (2 of 3)
-        rec("Micron Technology", "B", 60),  # now full, 60 <= 92 -> dropped
+        rec("Micron Technology", "B", 60),  # now full (92, 88, 70): 60 <= 70 -> dropped
         rec("New Co", "X", 50),
     ]
     kept, dropped = limit_company_total(records, existing, 3)
-    assert [r["Role"] for r in kept] == ["Better role", "A", "X"]
+    assert [r["Role"] for r in kept] == ["Better than weakest", "A", "X"]
     assert dropped == 2
 
 
