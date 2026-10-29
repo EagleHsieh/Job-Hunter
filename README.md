@@ -47,6 +47,8 @@ It is community-maintained, so treat a listing as a lead and confirm on the empl
   location; internships, co-ops, contracts; senior/staff/lead/II+ titles; JDs requiring more than 3 years.
 - **Also dropped:** postings that say they will not sponsor visas or take OPT/F-1/CPT candidates
   ("no visa sponsorship", "without sponsorship now or in the future", "no OPT", ...).
+- **Also dropped:** citizen / permanent-resident-only language, and employers listed in `blocked_companies` (config/targets.yaml).
+- **Lower priority:** fabrication, packaging, equipment, process, manufacturing and yield titles score negative; every other target role (R&D, design, IC design, hardware, quant) has equal priority.
 - **Flagged, not dropped:** "export control" language (noted in the Visa Sponsorship cell).
 - **Limits:** at most `max_per_company` (2) roles per company and `max_new_per_day` (20) overall, best score first.
   A company shown in the last `cooldown_days` days, or already applied/interviewing/rejected (Watchlist

@@ -40,6 +40,11 @@ HARD_EXCLUDE = re.compile(
             r"\bts/sci\b",
             r"top secret",
             r"public trust",
+            # citizen / permanent-resident only (not the F-1/OPT candidates you are)
+            r"(?:citizens?|permanent\s+residents?|green\s*card(?:\s+holders?)?)\s+only",
+            r"(?:u\.?s\.?\s+)?citizens?\s+(?:or|and|/)\s+(?:lawful\s+)?(?:u\.?s\.?\s+)?permanent\s+residents?\s+(?:only|are\s+eligible|required)",
+            r"must\s+be\s+a\s+(?:u\.?s\.?\s+)?(?:citizen|(?:lawful\s+)?permanent\s+resident)",
+            r"(?:lawful\s+)?permanent\s+resident\s+(?:status\s+)?(?:is\s+)?required",
         ]
     ),
     re.IGNORECASE,
@@ -118,6 +123,7 @@ class Config:
     cooldown_days: int = 7  # "recently" = shown in the sheet within this many days (or already applied/engaged)
     recent_company_max: int = 1  # roles per run for a company in cooldown
     exclude_company_patterns: list[str] = field(default_factory=list)
+    blocked_companies: list[str] = field(default_factory=list)  # flagged employers (citizen/PR only): never fed
     keep_companies: list[str] = field(default_factory=list)
     discovery_categories: list[str] = field(default_factory=list)  # lists to scan for unknown companies
     trusted_categories: list[str] = field(default_factory=list)  # skip the title-keyword check for these
@@ -141,6 +147,7 @@ class Config:
             cooldown_days=int(data.get("cooldown_days", 7)),
             recent_company_max=int(data.get("recent_company_max", 1)),
             exclude_company_patterns=[str(x).lower() for x in data.get("exclude_company_patterns", [])],
+            blocked_companies=[str(x).strip().lower() for x in data.get("blocked_companies", [])],
             keep_companies=[str(x).lower() for x in data.get("keep_companies", [])],
             discovery_categories=list((data.get("discovery") or {}).get("categories", [])),
             trusted_categories=list((data.get("discovery") or {}).get("trusted_categories", [])),
@@ -185,7 +192,13 @@ def is_excluded_employer(company: str, cfg: Config) -> bool:
     return any(re.search(pattern, low) for pattern in cfg.exclude_company_patterns)
 
 
+def is_blocked_company(company: str, cfg: Config) -> bool:
+    return company.strip().lower() in cfg.blocked_companies
+
+
 def evaluate(job: Job, cfg: Config) -> Evaluation:
+    if is_blocked_company(job.company, cfg):
+        return Evaluation(False, "flagged company (citizen / permanent-resident only)")
     if is_excluded_employer(job.company, cfg):
         return Evaluation(False, "school/university employer")
     text = f"{job.title}\n{job.description}"

@@ -102,6 +102,12 @@ exclude_company_patterns:
 keep_companies:
   - akuna capital university
 
+# Employers flagged as citizen / permanent-resident only (lowercase). Never fed, whatever the role.
+blocked_companies:
+  - rtx
+  - raytheon
+  - raytheon technologies
+
 # How well a title fits you (EE/IC/validation/signal integrity, then quant). A keyword adds its weight once.
 # Used only to pick each company's top roles; edit freely.
 early_career_bonus: 3
@@ -137,3 +143,12 @@ title_weights:
   firmware: 3
   systems engineer: 2
   software: -4
+  # Semiconductor: R&D, design, IC design, hardware and quant roles are all equal priority; only the
+  # repetitive fab, packaging and equipment work you do not want is pushed down.
+  fabrication: -10
+  packaging: -10
+  equipment: -10
+  process engineer: -8
+  manufacturing: -8
+  yield: -8
+  assembly: -6
