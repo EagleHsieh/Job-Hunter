@@ -420,3 +420,30 @@ def test_role_key_ignores_word_order_and_graduate_filler():
     assert role_key("HPE", "Electrical Hardware Engineer 1 Graduate") == role_key("HPE", "Graduate Electrical Hardware Engineer 1")
     assert role_key("HPE", "Electrical Hardware Engineer Graduate") == role_key("HPE", "Electrical Hardware Engineer 1 Graduate")
     assert role_key("HPE", "Electrical Design Engineer Graduate") != role_key("HPE", "Electrical Hardware Engineer Graduate")
+
+
+def test_company_total_cap_allows_only_a_better_role_once_full():
+    from jobhunter.rank import limit_company_total
+
+    def rec(company, role, score):
+        return {"Company Name": company, "Role": role, "Match Score": score}
+
+    existing = {"nvidia": [84, 76, 76], "micron technology": [92, 88]}
+    records = [
+        rec("NVIDIA", "Better role", 90),  # beats 84 -> kept
+        rec("NVIDIA", "Equal role", 84),  # not higher than the best -> dropped
+        rec("Micron Technology", "A", 70),  # company has room (2 of 3)
+        rec("Micron Technology", "B", 60),  # now full, 60 <= 92 -> dropped
+        rec("New Co", "X", 50),
+    ]
+    kept, dropped = limit_company_total(records, existing, 3)
+    assert [r["Role"] for r in kept] == ["Better role", "A", "X"]
+    assert dropped == 2
+
+
+def test_company_total_cap_zero_means_no_limit():
+    from jobhunter.rank import limit_company_total
+
+    records = [{"Company Name": "A", "Role": str(i), "Match Score": 10} for i in range(6)]
+    kept, dropped = limit_company_total(records, {}, 0)
+    assert len(kept) == 6 and dropped == 0

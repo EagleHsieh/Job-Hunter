@@ -81,6 +81,9 @@ discovery:
 
 # Per company, per run: only the best-matching roles reach the sheet (same title in several cities counts once).
 max_per_company: 2
+# Roles per company in the whole sheet: once a company has this many rows, a new role is added only if it
+# scores higher than every role already there.
+max_per_company_total: 3
 
 # Don't feed one employer day after day (or after you applied/engaged): a company shown in the last
 # `cooldown_days` days, or already applied/interviewing/rejected, is only shown again for a role scoring at

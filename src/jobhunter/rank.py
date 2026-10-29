@@ -50,6 +50,34 @@ def limit_per_company(records: list[dict], cap: int, recent=frozenset(), great_s
     return [record for rows in ordered for record in rows], dropped
 
 
+def limit_company_total(records: list[dict], existing: dict[str, list[float]], cap: int):
+    """Cap how many roles one company can have in the sheet overall (not just per day).
+
+    `existing` maps a lower-case company name to the Match Scores of its rows already in the sheet.
+    Once a company has `cap` rows, a new role is added only if its Match Score beats every role the
+    company already has (a better role than anything you have seen there). Returns (kept, dropped).
+    """
+    scores = {company: list(values) for company, values in existing.items()}
+    kept, dropped = [], 0
+    for record in records:  # arrives best first within each company
+        company = record["Company Name"].strip().lower()
+        have = scores.setdefault(company, [])
+        score = _number(record.get("Match Score"))
+        if cap and len(have) >= cap and not (have and score > max(have)):
+            dropped += 1
+            continue
+        have.append(score)
+        kept.append(record)
+    return kept, dropped
+
+
+def _number(value) -> float:
+    try:
+        return float(str(value).strip().rstrip("%"))
+    except ValueError:
+        return 0.0
+
+
 def _neg_date(value: str):
     # Newer first: invert the digits of YYYY-MM-DD; blank dates sort last.
     digits = "".join(ch for ch in str(value) if ch.isdigit())

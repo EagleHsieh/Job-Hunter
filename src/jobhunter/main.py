@@ -18,7 +18,7 @@ from .fetchers import FETCHERS, board_token, simplify
 from .fetchers.base import BoardNotFound, FetchError
 from .filters import Config
 from .pipeline import process
-from .rank import limit_per_company, limit_total
+from .rank import limit_company_total, limit_per_company, limit_total
 
 log = logging.getLogger("jobhunter")
 DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "config" / "targets.yaml"
@@ -136,6 +136,11 @@ def run(args) -> int:
     )
     if dropped:
         totals[f"skipped: beyond top {cfg.max_per_company} per company (or same title again, or fed/applied recently without a great match)"] += dropped
+
+    if sheet is not None and cfg.max_per_company_total:
+        all_records, over_total = limit_company_total(all_records, sheet.company_match_scores(), cfg.max_per_company_total)
+        if over_total:
+            totals[f"skipped: company already has {cfg.max_per_company_total} roles in the sheet (new role not better)"] += over_total
 
     daily_cap = cfg.max_new_per_day
     if sheet is not None and daily_cap:
