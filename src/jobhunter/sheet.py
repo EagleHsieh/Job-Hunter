@@ -150,6 +150,27 @@ class Sheet:
                     seen.add(role_key(company, role))
         return seen
 
+    def company_match_scores(self) -> dict[str, list[float]]:
+        """Match Scores of the rows already in the Jobs tab, by lower-case company name."""
+        worksheet = self._sheet.worksheet(JOBS_TAB)
+        headers = worksheet.row_values(1)
+        if COMPANY_HEADER not in headers or "Match Score" not in headers:
+            return {}
+        raw = {"value_render_option": "UNFORMATTED_VALUE"}
+        companies = worksheet.col_values(headers.index(COMPANY_HEADER) + 1, **raw)[1:]
+        scores = worksheet.col_values(headers.index("Match Score") + 1, **raw)[1:]
+        result: dict[str, list[float]] = {}
+        for i, company in enumerate(companies):
+            key = str(company).strip().lower()
+            if not key:
+                continue
+            try:
+                value = float(scores[i]) if i < len(scores) else 0.0
+            except (TypeError, ValueError):
+                value = 0.0
+            result.setdefault(key, []).append(value)
+        return result
+
     def count_added_on(self, day: date) -> int:
         """Rows whose Date Added is `day`: lets repeated runs on one day respect the daily limit."""
         worksheet = self._sheet.worksheet(JOBS_TAB)

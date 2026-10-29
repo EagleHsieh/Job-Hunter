@@ -113,6 +113,7 @@ class Config:
     max_required_years: int = 3
     official_links: dict[str, str] = field(default_factory=dict)  # company (lowercase) -> URL with {id}
     max_per_company: int = 5
+    max_per_company_total: int = 0  # roles per company in the whole sheet (0 = no limit)
     max_new_per_day: int = 0  # 0 = no overall cap
     title_weights: dict[str, int] = field(default_factory=dict)
     early_career_bonus: int = 3
@@ -137,6 +138,7 @@ class Config:
             max_required_years=int(data.get("max_required_years", 3)),
             official_links={k.lower(): v for k, v in (data.get("official_links") or {}).items()},
             max_per_company=int(data.get("max_per_company", 5)),
+            max_per_company_total=int(data.get("max_per_company_total", 0)),
             max_new_per_day=int(data.get("max_new_per_day", 0)),
             title_weights={k.lower(): int(v) for k, v in (data.get("title_weights") or {}).items()},
             early_career_bonus=int(data.get("early_career_bonus", 3)),
