@@ -106,6 +106,38 @@ YEARS_REQUIRED = re.compile(
 )
 
 
+def apply_one_day_boost(data: dict, today=None) -> dict:
+    """Merge the `one_day_boost` section of the config into it, but only on its stated date (US Central).
+
+    Lets you ask for "more of X, tomorrow only" without touching the standing settings: the section is
+    ignored on every other day.
+    """
+    boost = data.get("one_day_boost") or {}
+    if not boost:
+        return data
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    today = today or datetime.now(ZoneInfo("America/Chicago")).date()
+    if str(boost.get("date", "")) != today.isoformat():
+        return data
+    merged = dict(data)
+    for key in ("max_new_per_day", "max_per_company", "max_per_company_total", "cooldown_days", "recent_company_max"):
+        if key in boost:
+            merged[key] = boost[key]
+    merged["title_keywords"] = list(data.get("title_keywords", [])) + list(boost.get("extra_title_keywords", []))
+    weights = dict(data.get("title_weights") or {})
+    for word, weight in (boost.get("extra_title_weights") or {}).items():
+        weights[word] = weights.get(word, 0) + int(weight)
+    merged["title_weights"] = weights
+    discovery = dict(data.get("discovery") or {})
+    discovery["categories"] = list(discovery.get("categories", [])) + [
+        c for c in boost.get("extra_discovery_categories", []) if c not in discovery.get("categories", [])
+    ]
+    merged["discovery"] = discovery
+    return merged
+
+
 @dataclass
 class Config:
     title_keywords: list[str] = field(default_factory=list)
@@ -132,8 +164,9 @@ class Config:
     trusted_categories: list[str] = field(default_factory=list)  # skip the title-keyword check for these
 
     @classmethod
-    def from_yaml(cls, path) -> "Config":
+    def from_yaml(cls, path, today=None) -> "Config":
         data = yaml.safe_load(Path(path).read_text()) or {}
+        data = apply_one_day_boost(data, today)
         return cls(
             title_keywords=[k.lower() for k in data.get("title_keywords", [])],
             title_exclude=[k.lower() for k in data.get("title_exclude", [])],

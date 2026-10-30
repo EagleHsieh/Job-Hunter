@@ -160,3 +160,23 @@ title_weights:
   manufacturing: -8
   yield: -8
   assembly: -6
+
+# ONE-DAY BOOST: applies only on the stated date (US Central), ignored on every other day.
+# 2026-10-31: more quant trader, hardware engineer, hardware design engineer, hardware systems engineer and
+# cloud engineer roles (software discovery list added so cloud roles are seen; title keywords still gate them).
+one_day_boost:
+  date: 2026-10-31
+  max_new_per_day: 45
+  max_per_company: 3
+  extra_discovery_categories: [Software]
+  extra_title_keywords:
+    - cloud engineer
+    - cloud infrastructure
+  extra_title_weights:
+    cloud engineer: 8
+    cloud infrastructure: 5
+    quant trader: 4
+    hardware engineer: 3
+    hardware design engineer: 4
+    hardware systems engineer: 4
+    hardware system engineer: 4
