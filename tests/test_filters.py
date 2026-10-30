@@ -176,3 +176,21 @@ def test_unwanted_fab_packaging_equipment_roles_score_low_and_others_are_unaffec
     # R&D / design / hardware / IC design roles are not boosted or penalized by the new keywords.
     assert title_score("Semiconductor R&D Design Engineer", cfg) == title_score("Semiconductor Design Engineer", cfg)
     assert "rtx" in cfg.blocked_companies
+
+
+def test_one_day_boost_only_on_its_date(tmp_path):
+    from datetime import date
+
+    from jobhunter.filters import Config
+
+    path = tmp_path / "t.yaml"
+    path.write_text(
+        "title_keywords: [hardware]\nmax_new_per_day: 20\ntitle_weights: {hardware: 7}\n"
+        "one_day_boost:\n  date: 2026-10-31\n  max_new_per_day: 45\n  extra_title_keywords: [cloud engineer]\n"
+        "  extra_title_weights: {cloud engineer: 8, hardware: 1}\n  extra_discovery_categories: [Software]\n"
+    )
+    day = Config.from_yaml(path, today=date(2026, 10, 31))
+    assert day.max_new_per_day == 45 and "cloud engineer" in day.title_keywords
+    assert day.title_weights == {"hardware": 8, "cloud engineer": 8} and "Software" in day.discovery_categories
+    other = Config.from_yaml(path, today=date(2026, 11, 1))
+    assert other.max_new_per_day == 20 and other.title_keywords == ["hardware"] and not other.discovery_categories
