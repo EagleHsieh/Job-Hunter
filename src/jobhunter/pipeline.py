@@ -1,3 +1,4 @@
+import logging
 from collections import Counter
 from datetime import date
 
@@ -5,7 +6,10 @@ from .extract import NOT_STATED, find_deadline, snippets
 from .filters import Config, Evaluation, evaluate
 from .models import Job
 from .rank import match_percent, matched_keywords, title_score
+from . import window
 from .sheet import job_id, link_keys, role_key
+
+log = logging.getLogger(__name__)
 
 
 def to_record(job: Job, evaluation: Evaluation, opt: str, visa: str) -> dict:
@@ -32,7 +36,7 @@ def official_url(job: Job, cfg: Config) -> str:
     return template.format(id=ident) if template and ident else job.url
 
 
-def process(jobs: list[Job], cfg: Config, seen_links: set[str]):
+def process(jobs: list[Job], cfg: Config, seen_links: set[str], live=None):
     """Filter jobs, skip links already in the sheet, and return (records, stats)."""
     records: list[dict] = []
     stats: Counter = Counter()
@@ -55,6 +59,12 @@ def process(jobs: list[Job], cfg: Config, seen_links: set[str]):
         rkey = role_key(job.company, job.title)
         if rkey in seen_links:
             stats["skipped: same role already in sheet (other city)"] += 1
+            continue
+        check = (live or window.live_closed) if cfg.check_open else None
+        reason = window.closed_reason(job, official_url(job, cfg), cfg.max_posting_age_days, live=check)
+        if reason:
+            log.info("not open: %s %s (%s)", job.company, job.title, reason)
+            stats["rejected: application window closed"] += 1
             continue
         opt, visa = snippets(job.description)
         if evaluation.flags:

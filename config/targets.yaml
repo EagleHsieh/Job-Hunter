@@ -118,6 +118,11 @@ early_career_bonus: 3
 trusted_category_bonus: 3
 # Roles scoring below this never reach the sheet (software-only roles score 0 or less).
 min_score: 3
+
+# Application window: skip postings whose JD deadline has passed, that were posted more than this many days
+# ago, or whose posting page says it is closed / gone (checked live; if the page cannot be read the role is kept).
+max_posting_age_days: 60
+check_open: true
 # Title score that counts as 100 in the sheet's Match Score column (until the JD-based matcher exists).
 match_score_full: 25
 title_weights:

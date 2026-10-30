@@ -119,6 +119,8 @@ class Config:
     early_career_bonus: int = 3
     trusted_category_bonus: int = 3
     min_score: int = 0
+    max_posting_age_days: int = 0  # reject postings older than this (0 = no limit)
+    check_open: bool = True  # look at the posting page itself to see whether it is still open
     match_score_full: int = 25  # title score that counts as 100 in the Match Score column
     great_match_score: int = 15  # a company fed recently may reappear only with a role at least this good
     cooldown_days: int = 7  # "recently" = shown in the sheet within this many days (or already applied/engaged)
@@ -144,6 +146,8 @@ class Config:
             early_career_bonus=int(data.get("early_career_bonus", 3)),
             trusted_category_bonus=int(data.get("trusted_category_bonus", 3)),
             min_score=int(data.get("min_score", 0)),
+            max_posting_age_days=int(data.get("max_posting_age_days", 0)),
+            check_open=bool(data.get("check_open", True)),
             match_score_full=int(data.get("match_score_full", 25)),
             great_match_score=int(data.get("great_match_score", 15)),
             cooldown_days=int(data.get("cooldown_days", 7)),
