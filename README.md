@@ -43,12 +43,12 @@ dropped). Watchlist companies marked Excluded are never surfaced. Turn it off wi
 It is community-maintained, so treat a listing as a lead and confirm on the employer's page.
 
 ## Rules worth knowing
-- **Dropped:** US citizenship / "US person", ITAR, security-clearance language; non-US or unspecified
+- **Dropped:** roles open only to bachelor's candidates or current undergraduates (you are a master's student); a JD that names a bachelor's but never a master's is kept and flagged "verify" in the Visa Sponsorship cell. US citizenship / "US person", ITAR, security-clearance language; non-US or unspecified
   location; internships, co-ops, contracts; senior/staff/lead/II+ titles; JDs requiring more than 3 years.
 - **Also dropped:** postings that say they will not sponsor visas or take OPT/F-1/CPT candidates
   ("no visa sponsorship", "without sponsorship now or in the future", "no OPT", ...).
 - **Also dropped:** citizen / permanent-resident-only language, and employers listed in `blocked_companies` (config/targets.yaml).
-- **Lower priority:** fabrication, packaging, equipment, process, manufacturing and yield titles score negative; every other target role (R&D, design, IC design, hardware, quant) has equal priority.
+- **Lower priority:** fabrication, cleanroom, lithography, wafer, packaging, equipment, process, manufacturing and yield titles (and JDs full of cleanroom or wafer-fab work) score negative; every other target role (R&D, design, IC design, hardware, quant) has equal priority.
 - **Flagged, not dropped:** "export control" language (noted in the Visa Sponsorship cell).
 - **Limits:** at most `max_per_company` (2) roles per company and `max_new_per_day` (20) overall, best score first.
   A company shown in the last `cooldown_days` days, or already applied/interviewing/rejected (Watchlist

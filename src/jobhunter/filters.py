@@ -100,6 +100,26 @@ NON_PHD_DEGREE = re.compile(
     r"\bmaster'?s?\b|\bm\.?s\.?\b|\bmeng\b|\bbachelor'?s?\b|\bb\.?s\.?\b|\bundergraduate\b|\bbsc\b|\bmsc\b",
     re.IGNORECASE,
 )
+# Degree level: you are a master's student (BS already earned), so a role open only to bachelor's candidates
+# or current undergraduates is out; a JD that names a bachelor's but never a master's is flagged to verify.
+BACHELOR_ONLY = re.compile(
+    "|".join(
+        [
+            r"\b(?:bachelor'?s?|b\.?s\.?|bsc)(?:\s+(?:degree|candidates?|students?|level))*\s*(?:\([^)]*\)\s*)?only\b",
+            r"\bundergraduate\s+(?:students?\s+|candidates?\s+)?only\b",
+            r"\bonly\s+(?:open|available|eligible)\s+(?:to|for)\s+(?:current\s+)?(?:bachelor'?s?|undergraduate)",
+            r"\b(?:currently|presently)\s+(?:pursuing|enrolled\s+in|working\s+toward)\s+(?:a|an)\s+(?:bachelor'?s?|b\.?s\.?|undergraduate)",
+            r"\b(?:rising|current)\s+(?:junior|senior)s?\b",
+        ]
+    ),
+    re.IGNORECASE,
+)
+BACHELOR_MENTION = re.compile(r"\bbachelor'?s?\b|\bb\.?s\.?\b(?=[\s/,)]*(?:degree|in\b|or\b))|\bbsc\b|\bundergraduate\b", re.IGNORECASE)
+MASTER_MENTION = re.compile(
+    r"\bmaster'?s?\b|\bmeng\b|\bmsc\b|\bgraduate\s+degree\b|\badvanced\s+degree\b|\bpost-?graduate\b",
+    re.IGNORECASE,
+)
+MASTER_ABBR = re.compile(r"\bM\.?S\.?(?=[\s/,)])")  # case-sensitive so "ms" in other words is ignored
 YEARS_REQUIRED = re.compile(
     r"(\d{1,2})(?:\s*(?:-|–|to)\s*\d{1,2})?\s*\+?\s*(?:years?|yrs?)[^.\n]{0,80}?experience",
     re.IGNORECASE,
@@ -151,6 +171,7 @@ class Config:
     early_career_bonus: int = 3
     trusted_category_bonus: int = 3
     min_score: int = 0
+    description_weights: dict[str, int] = field(default_factory=dict)  # JD-text keywords that raise/lower a role's score
     max_posting_age_days: int = 0  # reject postings older than this (0 = no limit)
     check_open: bool = True  # look at the posting page itself to see whether it is still open
     match_score_full: int = 25  # title score that counts as 100 in the Match Score column
@@ -179,6 +200,7 @@ class Config:
             early_career_bonus=int(data.get("early_career_bonus", 3)),
             trusted_category_bonus=int(data.get("trusted_category_bonus", 3)),
             min_score=int(data.get("min_score", 0)),
+            description_weights={k.lower(): int(v) for k, v in (data.get("description_weights") or {}).items()},
             max_posting_age_days=int(data.get("max_posting_age_days", 0)),
             check_open=bool(data.get("check_open", True)),
             match_score_full=int(data.get("match_score_full", 25)),
@@ -223,6 +245,18 @@ def required_years(description: str):
     return max(years) if years else None
 
 
+def degree_status(description: str) -> str:
+    """'bachelor-only' (explicitly closed to master's students), 'bachelor-mentioned' (names a bachelor's but
+    never a master's/graduate degree: verify), or 'ok'."""
+    text = description or ""
+    master = bool(MASTER_MENTION.search(text) or MASTER_ABBR.search(text))
+    if BACHELOR_ONLY.search(text) and not master:
+        return "bachelor-only"
+    if BACHELOR_MENTION.search(text) and not master:
+        return "bachelor-mentioned"
+    return "ok"
+
+
 def is_excluded_employer(company: str, cfg: Config) -> bool:
     """Schools and universities: you want industry roles."""
     low = company.strip().lower()
@@ -255,6 +289,9 @@ def evaluate(job: Job, cfg: Config) -> Evaluation:
         return Evaluation(False, "shift work")
     if PHD_MENTION.search(job.description) and not NON_PHD_DEGREE.search(job.description):
         return Evaluation(False, "PhD-level role")
+    degree = degree_status(job.description)
+    if degree == "bachelor-only":
+        return Evaluation(False, "bachelor's only (not open to master's students)")
     years = required_years(job.description)
     if years is not None and years > cfg.max_required_years:
         return Evaluation(False, f"requires more than {cfg.max_required_years} years")
@@ -273,4 +310,6 @@ def evaluate(job: Job, cfg: Config) -> Evaluation:
     else:
         level = "Unspecified, verify"
     flags = ["export-control language"] if EXPORT_CONTROL.search(text) else []
+    if degree == "bachelor-mentioned":
+        flags.append("degree: bachelor's named, master's not mentioned (verify)")
     return Evaluation(True, "", level, flags)
