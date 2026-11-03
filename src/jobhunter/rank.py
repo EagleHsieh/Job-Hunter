@@ -16,6 +16,13 @@ def title_score(title: str, cfg: Config, category: str = "") -> int:
     return score + (cfg.trusted_category_bonus if category in cfg.trusted_categories else 0)
 
 
+def description_score(description: str, cfg: Config) -> int:
+    """Adds the weight of each config `description_weights` phrase found in the JD (used to push down roles
+    that are mostly cleanroom / wafer-fab work even when the title looks fine)."""
+    low = (description or "").lower()
+    return sum(weight for word, weight in cfg.description_weights.items() if word in low)
+
+
 def limit_per_company(records: list[dict], cap: int, recent=frozenset(), great_score=0, recent_cap=1):
     """Group records by company, best score first (ties: newest posting), keep at most `cap` each.
 

@@ -194,3 +194,42 @@ def test_one_day_boost_only_on_its_date(tmp_path):
     assert day.title_weights == {"hardware": 8, "cloud engineer": 8} and "Software" in day.discovery_categories
     other = Config.from_yaml(path, today=date(2026, 11, 1))
     assert other.max_new_per_day == 20 and other.title_keywords == ["hardware"] and not other.discovery_categories
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "This role is open to Bachelor's degree candidates only.",
+        "Eligible candidates are currently pursuing a Bachelor's degree in Electrical Engineering.",
+        "BS only. Graduating Dec 2026.",
+        "We are looking for rising seniors.",
+    ],
+)
+def test_bachelor_only_roles_are_dropped(text):
+    result = evaluate(job(description=text), CFG)
+    assert not result.keep and "bachelor" in result.reason
+
+
+def test_role_open_to_master_students_is_kept_not_flagged():
+    result = evaluate(job(description="Bachelor's or Master's degree in Electrical Engineering."), CFG)
+    assert result.keep and not any("degree" in f for f in result.flags)
+    result = evaluate(job(description="Bachelor's degree only; M.S. preferred."), CFG)
+    assert result.keep
+
+
+def test_bachelor_named_without_master_is_flagged_to_verify():
+    result = evaluate(job(description="Bachelor's degree in Electrical Engineering required."), CFG)
+    assert result.keep and any("degree" in f for f in result.flags)
+    assert not any("degree" in f for f in evaluate(job(description="Join our team."), CFG).flags)
+
+
+def test_cleanroom_and_wafer_fab_roles_score_low():
+    from jobhunter.rank import description_score, title_score
+
+    cfg = CFG_FROM_FILE
+    assert title_score("Cleanroom Process Engineer", cfg) < cfg.min_score
+    assert title_score("Lithography Engineer", cfg) < cfg.min_score
+    assert title_score("Hardware Validation Engineer", cfg) >= cfg.min_score
+    heavy = "Daily work in the cleanroom running photolithography on wafer fab tools."
+    assert title_score("Hardware Engineer", cfg) + description_score(heavy, cfg) < cfg.min_score + 8
+    assert description_score("Lab and test bench work.", cfg) == 0

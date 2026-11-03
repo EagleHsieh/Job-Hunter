@@ -153,13 +153,32 @@ title_weights:
   software: -4
   # Semiconductor: R&D, design, IC design, hardware and quant roles are all equal priority; only the
   # repetitive fab, packaging and equipment work you do not want is pushed down.
-  fabrication: -10
+  fabrication: -20
   packaging: -10
   equipment: -10
-  process engineer: -8
+  process engineer: -12
+  process integration: -12
   manufacturing: -8
   yield: -8
   assembly: -6
+  cleanroom: -20
+  clean room: -20
+  lithography: -20
+  thin film: -20
+  wafer: -15
+  deposition: -15
+  etch engineer: -15
+
+# Same idea for the JD text: roles that are mostly cleanroom / wafer-fab work are pushed down even when the
+# title looks fine (a one-off mention in a hardware role still leaves it above min_score).
+description_weights:
+  cleanroom: -6
+  clean room: -6
+  photolithography: -6
+  lithography: -6
+  wafer fab: -6
+  semiconductor fab: -6
+  thin film deposition: -6
 
 # ONE-DAY BOOST: applies only on the stated date (US Central), ignored on every other day.
 # 2026-10-31: more quant trader, hardware engineer, hardware design engineer, hardware systems engineer and

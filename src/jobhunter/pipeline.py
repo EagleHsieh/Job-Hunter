@@ -5,7 +5,7 @@ from datetime import date
 from .extract import NOT_STATED, find_deadline, snippets
 from .filters import Config, Evaluation, evaluate
 from .models import Job
-from .rank import match_percent, matched_keywords, title_score
+from .rank import description_score, match_percent, matched_keywords, title_score
 from . import window
 from .sheet import job_id, link_keys, role_key
 
@@ -52,7 +52,7 @@ def process(jobs: list[Job], cfg: Config, seen_links: set[str], live=None):
         if not evaluation.keep:
             stats[f"rejected: {evaluation.reason}"] += 1
             continue
-        score = title_score(job.title, cfg, job.category)
+        score = title_score(job.title, cfg, job.category) + description_score(job.description, cfg)
         if score < cfg.min_score:
             stats[f"rejected: low title match (score under {cfg.min_score})"] += 1
             continue
