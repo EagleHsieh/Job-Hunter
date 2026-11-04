@@ -181,34 +181,24 @@ description_weights:
   thin film deposition: -6
 
 # ONE-DAY BOOST: applies only on the stated date (US Central), ignored on every other day.
-# 2026-11-04: more quant (researcher / trader / analyst / developer) and consulting (management, strategy,
-# technology, analytics) roles. Software and Product discovery lists are added so consulting-type roles are
-# seen; title keywords still gate them.
+# 2026-11-05: more AI engineer / machine learning engineer roles (AI/ML/Data and Software discovery lists
+# are added so they are seen; title keywords still gate them).
 one_day_boost:
-  date: 2026-11-04
+  date: 2026-11-05
   max_new_per_day: 45
   max_per_company: 3
-  extra_discovery_categories: [Software, Product]
+  extra_discovery_categories: [AI/ML/Data, Software]
   extra_title_keywords:
-    - quantitative
-    - consulting
-    - strategy
-    - analytics
-    - analyst
+    - ai engineer
+    - machine learning
+    - ml engineer
+    - applied ai
+    - ai/ml
   extra_title_weights:
-    quantitative researcher: 7
-    quantitative trader: 6
-    quantitative developer: 5
-    quantitative analyst: 5
-    quantitative: 5
-    quant researcher: 7
-    quant trader: 6
-    quant developer: 5
-    consultant: 5
-    consulting: 5
-    management consultant: 6
-    technology consultant: 5
-    strategy: 4
-    analytics: 4
-    business analyst: 5
-    analyst: 4
+    ai engineer: 9
+    applied ai: 7
+    ai/ml: 7
+    machine learning engineer: 8
+    machine learning: 5
+    ml engineer: 7
+    llm: 3
