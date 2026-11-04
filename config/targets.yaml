@@ -181,21 +181,34 @@ description_weights:
   thin film deposition: -6
 
 # ONE-DAY BOOST: applies only on the stated date (US Central), ignored on every other day.
-# 2026-10-31: more quant trader, hardware engineer, hardware design engineer, hardware systems engineer and
-# cloud engineer roles (software discovery list added so cloud roles are seen; title keywords still gate them).
+# 2026-11-04: more quant (researcher / trader / analyst / developer) and consulting (management, strategy,
+# technology, analytics) roles. Software and Product discovery lists are added so consulting-type roles are
+# seen; title keywords still gate them.
 one_day_boost:
-  date: 2026-10-31
+  date: 2026-11-04
   max_new_per_day: 45
   max_per_company: 3
-  extra_discovery_categories: [Software]
+  extra_discovery_categories: [Software, Product]
   extra_title_keywords:
-    - cloud engineer
-    - cloud infrastructure
+    - quantitative
+    - consulting
+    - strategy
+    - analytics
+    - analyst
   extra_title_weights:
-    cloud engineer: 8
-    cloud infrastructure: 5
-    quant trader: 4
-    hardware engineer: 3
-    hardware design engineer: 4
-    hardware systems engineer: 4
-    hardware system engineer: 4
+    quantitative researcher: 7
+    quantitative trader: 6
+    quantitative developer: 5
+    quantitative analyst: 5
+    quantitative: 5
+    quant researcher: 7
+    quant trader: 6
+    quant developer: 5
+    consultant: 5
+    consulting: 5
+    management consultant: 6
+    technology consultant: 5
+    strategy: 4
+    analytics: 4
+    business analyst: 5
+    analyst: 4
