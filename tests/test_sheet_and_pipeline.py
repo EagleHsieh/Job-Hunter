@@ -104,7 +104,7 @@ def test_export_control_flag_lands_in_visa_column():
 
 
 def test_sheet_writer_roundtrip():
-    jobs_tab = FakeWorksheet([HEADERS, [""] * 15 + ["https://boards.greenhouse.io/acme/jobs/9"]])
+    jobs_tab = FakeWorksheet([HEADERS, [""] * 14 + ["https://boards.greenhouse.io/acme/jobs/9"]])
     sheet = Sheet(FakeSpreadsheet({"Jobs": jobs_tab}))
     assert sheet.existing_links() == {"boards.greenhouse.io/acme/jobs/9"}
 
@@ -378,7 +378,7 @@ def test_same_role_in_another_city_is_not_added_again():
     cfg = Config(title_keywords=["hardware"], title_exclude=[], max_required_years=3)
     jobs_tab = FakeWorksheet([
         HEADERS,
-        ["", "", "Acme", "Hardware Engineer, New Grad", "", "", "", "", "", "", "", "", "", "", "",
+        ["", "Acme", "Hardware Engineer, New Grad", "", "", "", "", "", "", "", "", "", "", "",
          "https://boards.greenhouse.io/acme/jobs/1"] + [""] * 3,
     ])
     sheet = Sheet(FakeSpreadsheet({"Jobs": jobs_tab}))
