@@ -5,7 +5,7 @@ from jobhunter.pipeline import process
 from jobhunter.sheet import Sheet, build_row, normalize_url
 
 HEADERS = [
-    "Status", "Decision", "Company Name", "Role", "Industry", "Role Posting Date",
+    "Status", "Company Name", "Role", "Industry", "Role Posting Date",
     "Submission Deadline", "Date Applied", "Match Score", "Requirement Met Count",
     "Top Matching Keywords", "Gaps", "Level", "Location", "Salary Range (from JD)",
     "Posting Link", "Resume Filename", "OPT availability", "Visa Sponsorship",
@@ -104,7 +104,7 @@ def test_export_control_flag_lands_in_visa_column():
 
 
 def test_sheet_writer_roundtrip():
-    jobs_tab = FakeWorksheet([HEADERS, [""] * 15 + ["https://boards.greenhouse.io/acme/jobs/9"]])
+    jobs_tab = FakeWorksheet([HEADERS, [""] * 14 + ["https://boards.greenhouse.io/acme/jobs/9"]])
     sheet = Sheet(FakeSpreadsheet({"Jobs": jobs_tab}))
     assert sheet.existing_links() == {"boards.greenhouse.io/acme/jobs/9"}
 
@@ -114,7 +114,7 @@ def test_sheet_writer_roundtrip():
     assert row["Company Name"] == "Acme"
     assert row["Role Posting Date"] == "2026-10-20"
     assert row["Posting Link"] == "https://boards.greenhouse.io/acme/jobs/1"
-    assert row["Status"] == "" and row["Decision"] == ""  # left for the user
+    assert row["Status"] == ""  # left for the user
     assert jobs_tab.options == "USER_ENTERED"
     assert sheet.append_jobs([]) == 0
 
@@ -378,7 +378,7 @@ def test_same_role_in_another_city_is_not_added_again():
     cfg = Config(title_keywords=["hardware"], title_exclude=[], max_required_years=3)
     jobs_tab = FakeWorksheet([
         HEADERS,
-        ["", "", "Acme", "Hardware Engineer, New Grad", "", "", "", "", "", "", "", "", "", "", "",
+        ["", "Acme", "Hardware Engineer, New Grad", "", "", "", "", "", "", "", "", "", "", "",
          "https://boards.greenhouse.io/acme/jobs/1"] + [""] * 3,
     ])
     sheet = Sheet(FakeSpreadsheet({"Jobs": jobs_tab}))
