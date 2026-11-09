@@ -12,6 +12,15 @@ from .sheet import job_id, link_keys, role_key
 log = logging.getLogger(__name__)
 
 
+MAX_JD_CHARS = 45000  # a Google Sheets cell holds at most 50,000 characters
+
+
+def clip_description(text: str) -> str:
+    """Full JD text for the 'Job Description' column so the resume task never has to open the posting."""
+    text = (text or "").strip()
+    return text[:MAX_JD_CHARS]
+
+
 def to_record(job: Job, evaluation: Evaluation, opt: str, visa: str) -> dict:
     """Keys are the exact column headers of the Jobs tab."""
     return {
@@ -26,6 +35,7 @@ def to_record(job: Job, evaluation: Evaluation, opt: str, visa: str) -> dict:
         "OPT availability": opt,
         "Visa Sponsorship": visa,
         "Date Added": date.today().isoformat(),
+        "Job Description": clip_description(job.description),
     }
 
 
