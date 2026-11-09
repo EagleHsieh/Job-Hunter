@@ -5,7 +5,7 @@ from jobhunter.pipeline import process
 from jobhunter.sheet import Sheet, build_row, normalize_url
 
 HEADERS = [
-    "Status", "Decision", "Company Name", "Role", "Industry", "Role Posting Date",
+    "Status", "Company Name", "Role", "Industry", "Role Posting Date",
     "Submission Deadline", "Date Applied", "Match Score", "Requirement Met Count",
     "Top Matching Keywords", "Gaps", "Level", "Location", "Salary Range (from JD)",
     "Posting Link", "Resume Filename", "OPT availability", "Visa Sponsorship",
@@ -114,7 +114,7 @@ def test_sheet_writer_roundtrip():
     assert row["Company Name"] == "Acme"
     assert row["Role Posting Date"] == "2026-10-20"
     assert row["Posting Link"] == "https://boards.greenhouse.io/acme/jobs/1"
-    assert row["Status"] == "" and row["Decision"] == ""  # left for the user
+    assert row["Status"] == ""  # left for the user
     assert jobs_tab.options == "USER_ENTERED"
     assert sheet.append_jobs([]) == 0
 

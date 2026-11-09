@@ -29,7 +29,7 @@ in Actions) is the true check; if a field name differs, the fix is a one-line ch
 4. Apply filters; every rejection has a logged reason (printed as counts at the end of a run).
 5. Append survivors to **Jobs**, filling Company, Role, Industry, Posting Date, Level, Location, Salary
    (only if the JD states it), Posting Link, OPT availability and Visa Sponsorship (quoted from the JD, else
-   "Not stated, verify"). Status and Decision are left blank for you.
+   "Not stated, verify"). Status is left blank for you (set it to Apply, Skip, Applied, Stall, Interview, Rejected or Offer).
 
 Filter rules live in `src/jobhunter/filters.py`; the role keywords you want live in
 `config/targets.yaml`.
