@@ -22,6 +22,15 @@ title_keywords:
   - system engineer
   - board
   - pcb
+  # AI / cloud / server (weighted like FPGA / ASIC; the specific phrases keep generic software roles out)
+  - ai engineer
+  - machine learning engineer
+  - ml engineer
+  - applied ai
+  - ai/ml
+  - cloud engineer
+  - cloud infrastructure
+  - server engineer
   # quantum
   - quantum
   # quant trading / fintech
@@ -74,9 +83,10 @@ official_links:
 # Discovery: scan a public new-grad list for employers that are NOT on your Watchlist.
 # categories: which lists to read (Hardware, Quant, AI/ML/Data, Software, Product).
 # trusted_categories: for these, any title passes the keyword check (the list already says hardware).
+# AI/ML/Data and Software are scanned too, but their titles still have to match a keyword above.
 # Everything else (US location, senior, PhD, shift work, citizenship) is still filtered.
 discovery:
-  categories: [Hardware, Quant]
+  categories: [Hardware, Quant, AI/ML/Data, Software]
   trusted_categories: [Hardware]
 
 # Per company, per run: only the best-matching roles reach the sheet (same title in several cities counts once).
@@ -147,6 +157,14 @@ title_weights:
   trader: 5
   quant: 4
   test engineer: 4
+  ai engineer: 6
+  machine learning engineer: 6
+  ml engineer: 6
+  applied ai: 6
+  ai/ml: 6
+  cloud engineer: 6
+  cloud infrastructure: 6
+  server engineer: 6
   embedded: 3
   firmware: 3
   systems engineer: 2
@@ -180,33 +198,14 @@ description_weights:
   semiconductor fab: -6
   thin film deposition: -6
 
-# BOOST: applies only from `date` through `until` (US Central, inclusive; leave `until` out for a single day),
-# ignored on every other day. Standing settings above are untouched.
-# 2026-11-11 to 2026-11-13: more AI engineer, cloud engineer, server engineer and hardware (R&D) engineer roles,
-# each weighted like IC design / FPGA / ASIC / quant trader (6). Hardware R&D titles already pass on the word
-# "hardware" (weight 7). AI/ML/Data and Software discovery lists are added so these roles are seen; the title
-# keywords below still gate them, so generic software roles stay out.
-one_day_boost:
-  date: 2026-11-11
-  until: 2026-11-13
-  max_new_per_day: 45
-  max_per_company: 3
-  extra_discovery_categories: [AI/ML/Data, Software]
-  extra_title_keywords:
-    - ai engineer
-    - machine learning engineer
-    - ml engineer
-    - applied ai
-    - ai/ml
-    - cloud engineer
-    - cloud infrastructure
-    - server engineer
-  extra_title_weights:
-    ai engineer: 6
-    machine learning engineer: 6
-    ml engineer: 6
-    applied ai: 6
-    ai/ml: 6
-    cloud engineer: 6
-    cloud infrastructure: 6
-    server engineer: 6
+# TEMPORARY BOOST (none active). To raise limits or add roles for a few days only, add a section like this;
+# it applies from `date` through `until` (US Central, inclusive; leave `until` out for one day) and is ignored
+# on every other day:
+# one_day_boost:
+#   date: 2026-12-01
+#   until: 2026-12-03
+#   max_new_per_day: 45
+#   max_per_company: 3
+#   extra_discovery_categories: [Product]
+#   extra_title_keywords: [product manager]
+#   extra_title_weights: {product manager: 6}
