@@ -127,7 +127,8 @@ YEARS_REQUIRED = re.compile(
 
 
 def apply_one_day_boost(data: dict, today=None) -> dict:
-    """Merge the `one_day_boost` section of the config into it, but only on its stated date (US Central).
+    """Merge the `one_day_boost` section of the config into it, but only on its stated date (US Central),
+    or from `date` through `until` (inclusive) when a last day is given.
 
     Lets you ask for "more of X, tomorrow only" without touching the standing settings: the section is
     ignored on every other day.
@@ -139,7 +140,9 @@ def apply_one_day_boost(data: dict, today=None) -> dict:
     from zoneinfo import ZoneInfo
 
     today = today or datetime.now(ZoneInfo("America/Chicago")).date()
-    if str(boost.get("date", "")) != today.isoformat():
+    start = str(boost.get("date", ""))
+    end = str(boost.get("until", start))  # optional last day (inclusive) for a boost that lasts several days
+    if not start or not (start <= today.isoformat() <= end):
         return data
     merged = dict(data)
     for key in ("max_new_per_day", "max_per_company", "max_per_company_total", "cooldown_days", "recent_company_max"):

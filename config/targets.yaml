@@ -180,25 +180,33 @@ description_weights:
   semiconductor fab: -6
   thin film deposition: -6
 
-# ONE-DAY BOOST: applies only on the stated date (US Central), ignored on every other day.
-# 2026-11-05: more AI engineer / machine learning engineer roles (AI/ML/Data and Software discovery lists
-# are added so they are seen; title keywords still gate them).
+# BOOST: applies only from `date` through `until` (US Central, inclusive; leave `until` out for a single day),
+# ignored on every other day. Standing settings above are untouched.
+# 2026-11-11 to 2026-11-13: more AI engineer, cloud engineer, server engineer and hardware (R&D) engineer roles,
+# each weighted like IC design / FPGA / ASIC / quant trader (6). Hardware R&D titles already pass on the word
+# "hardware" (weight 7). AI/ML/Data and Software discovery lists are added so these roles are seen; the title
+# keywords below still gate them, so generic software roles stay out.
 one_day_boost:
-  date: 2026-11-05
+  date: 2026-11-11
+  until: 2026-11-13
   max_new_per_day: 45
   max_per_company: 3
   extra_discovery_categories: [AI/ML/Data, Software]
   extra_title_keywords:
     - ai engineer
-    - machine learning
+    - machine learning engineer
     - ml engineer
     - applied ai
     - ai/ml
+    - cloud engineer
+    - cloud infrastructure
+    - server engineer
   extra_title_weights:
-    ai engineer: 9
-    applied ai: 7
-    ai/ml: 7
-    machine learning engineer: 8
-    machine learning: 5
-    ml engineer: 7
-    llm: 3
+    ai engineer: 6
+    machine learning engineer: 6
+    ml engineer: 6
+    applied ai: 6
+    ai/ml: 6
+    cloud engineer: 6
+    cloud infrastructure: 6
+    server engineer: 6

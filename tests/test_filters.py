@@ -233,3 +233,17 @@ def test_cleanroom_and_wafer_fab_roles_score_low():
     heavy = "Daily work in the cleanroom running photolithography on wafer fab tools."
     assert title_score("Hardware Engineer", cfg) + description_score(heavy, cfg) < cfg.min_score + 8
     assert description_score("Lab and test bench work.", cfg) == 0
+
+
+def test_boost_can_span_several_days(tmp_path):
+    from datetime import date
+
+    from jobhunter.filters import Config
+
+    path = tmp_path / "t.yaml"
+    path.write_text(
+        "title_keywords: [hardware]\nmax_new_per_day: 20\n"
+        "one_day_boost:\n  date: 2026-11-11\n  until: 2026-11-13\n  max_new_per_day: 45\n"
+    )
+    for day, expected in [(date(2026, 11, 10), 20), (date(2026, 11, 11), 45), (date(2026, 11, 13), 45), (date(2026, 11, 14), 20)]:
+        assert Config.from_yaml(path, today=day).max_new_per_day == expected
