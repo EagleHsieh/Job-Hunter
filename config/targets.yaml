@@ -22,10 +22,13 @@ title_keywords:
   - system engineer
   - board
   - pcb
-  # AI / cloud / server (weighted like FPGA / ASIC; the specific phrases keep generic software roles out)
+  # AI/ML, HPC, cloud, server (Eagle's focus from Nov 2026, weighted like hardware; the specific phrases keep generic software roles out)
   - ai engineer
-  - machine learning engineer
+  - machine learning
+  - deep learning
   - ml engineer
+  - hpc
+  - high performance computing
   - applied ai
   - ai/ml
   - cloud engineer
@@ -33,9 +36,11 @@ title_keywords:
   - server engineer
   # quantum
   - quantum
+  - quantum computing
   # quant trading / fintech
   - quant
   - trader
+  - quantitative researcher
   # consulting
   - consultant
   - business analyst
@@ -157,14 +162,19 @@ title_weights:
   trader: 5
   quant: 4
   test engineer: 4
-  ai engineer: 6
-  machine learning engineer: 6
-  ml engineer: 6
-  applied ai: 6
-  ai/ml: 6
+  ai engineer: 7
+  machine learning: 7
+  deep learning: 7
+  ml engineer: 7
+  applied ai: 7
+  ai/ml: 7
+  hpc: 7
+  high performance computing: 7
   cloud engineer: 6
   cloud infrastructure: 6
   server engineer: 6
+  quantum computing: 3
+  quantitative researcher: 3
   embedded: 3
   firmware: 3
   systems engineer: 2
