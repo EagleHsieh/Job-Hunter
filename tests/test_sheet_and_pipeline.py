@@ -447,3 +447,11 @@ def test_company_total_cap_zero_means_no_limit():
     records = [{"Company Name": "A", "Role": str(i), "Match Score": 10} for i in range(6)]
     kept, dropped = limit_company_total(records, {}, 0)
     assert len(kept) == 6 and dropped == 0
+
+
+def test_clip_description_flattens_to_single_line():
+    from jobhunter.pipeline import clip_description
+
+    text = "Responsibilities:\n\n- Build models\r\n- Test\t them\n"
+    assert clip_description(text) == "Responsibilities: - Build models - Test them"
+    assert "\n" not in clip_description(text)
