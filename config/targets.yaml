@@ -41,6 +41,9 @@ title_keywords:
   - quant
   - trader
   - quantitative researcher
+  - trading
+  - market maker
+  - systematic
   # consulting
   - consultant
   - business analyst
@@ -159,8 +162,11 @@ title_weights:
   board: 5
   pcb: 5
   quantum: 5
-  trader: 5
-  quant: 4
+  trader: 8
+  quant: 6
+  trading: 4
+  market mak: 5
+  systematic: 3
   test engineer: 4
   ai engineer: 7
   machine learning: 7
