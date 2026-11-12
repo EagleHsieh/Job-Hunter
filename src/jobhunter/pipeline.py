@@ -17,7 +17,8 @@ MAX_JD_CHARS = 45000  # a Google Sheets cell holds at most 50,000 characters
 
 def clip_description(text: str) -> str:
     """Full JD text for the 'Job Description' column so the resume task never has to open the posting."""
-    text = (text or "").strip()
+    # One line, all words kept: line breaks make a Sheets row grow tall; the column is clipped for display.
+    text = " ".join((text or "").split())
     return text[:MAX_JD_CHARS]
 
 
