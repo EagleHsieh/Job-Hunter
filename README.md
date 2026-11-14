@@ -38,8 +38,12 @@ Filter rules live in `src/jobhunter/filters.py`; the role keywords you want live
 The Watchlist is a reference, not a limit. Each run also reads the public SimplifyJobs new-grad list
 (`config/targets.yaml` → `discovery`), which covers thousands of employers, and sends those listings
 through the same filters. Entries link to the employer's own application page; the list has no job
-description, so OPT/Visa stay "Not stated, verify" (listings flagged "U.S. Citizenship is Required" are
-dropped). Watchlist companies marked Excluded are never surfaced. Turn it off with `--no-discovery`.
+description of its own, so the run reads each surviving listing's JD from the employer's posting
+(`src/jobhunter/jd.py`: Workday, Greenhouse, Lever, Ashby, SmartRecruiters, Workable, Oracle HCM, Eightfold
+JSON endpoints, else the page's schema.org JobPosting data), writes it to the **Job Description** column, and
+runs the usual checks on it (citizenship, no sponsorship, PhD, years). A posting that cannot be read is still
+added, with an empty JD and OPT/Visa "Not stated, verify". Listings flagged "U.S. Citizenship is Required"
+are dropped. Set `fetch_descriptions: false` in `config/targets.yaml` to turn the fetch off. Watchlist companies marked Excluded are never surfaced. Turn it off with `--no-discovery`.
 It is community-maintained, so treat a listing as a lead and confirm on the employer's page.
 
 ## Rules worth knowing
@@ -82,3 +86,8 @@ Never commit credentials. The sheet writer picks its credentials like this:
 GitHub secrets/variables (Settings → Secrets and variables → Actions): `SHEET_ID`; for keyless auth
 `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_SERVICE_ACCOUNT`; later, for scoring, `ANTHROPIC_API_KEY`.
 Share the sheet with the service account's email (Editor) in either case.
+
+## Backfilling missing job descriptions
+`python -m jobhunter.backfill [--dry-run] [--limit N] [--all-status]` fills blank **Job Description** cells of
+rows already in the sheet (blank Status only, never overwrites, one line per cell). It also lists rows whose JD
+says citizenship / clearance / no sponsorship. GitHub: Actions > "Backfill job descriptions" > Run workflow.

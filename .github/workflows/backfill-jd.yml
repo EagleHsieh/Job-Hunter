@@ -1,0 +1,43 @@
+name: Backfill job descriptions
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only (do not write to the sheet)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write # keyless Google auth (Workload Identity Federation)
+
+concurrency:
+  group: daily-job-search
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - name: Fill blank Job Description cells
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          PYTHONPATH: src
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python -m jobhunter.backfill --dry-run
+          else
+            python -m jobhunter.backfill
+          fi
