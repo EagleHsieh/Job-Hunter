@@ -137,6 +137,7 @@ min_score: 3
 # Application window: skip postings whose JD deadline has passed, that were posted more than this many days
 # ago, or whose posting page says it is closed / gone (checked live; if the page cannot be read the role is kept).
 max_posting_age_days: 60
+fetch_descriptions: true   # discovery-list jobs have no JD: read it from the employer posting
 check_open: true
 # Title score that counts as 100 in the sheet's Match Score column (until the JD-based matcher exists).
 match_score_full: 25

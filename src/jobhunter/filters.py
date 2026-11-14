@@ -176,6 +176,7 @@ class Config:
     min_score: int = 0
     description_weights: dict[str, int] = field(default_factory=dict)  # JD-text keywords that raise/lower a role's score
     max_posting_age_days: int = 0  # reject postings older than this (0 = no limit)
+    fetch_descriptions: bool = True  # read the JD from the posting for jobs whose feed has none (Simplify list)
     check_open: bool = True  # look at the posting page itself to see whether it is still open
     match_score_full: int = 25  # title score that counts as 100 in the Match Score column
     great_match_score: int = 15  # a company fed recently may reappear only with a role at least this good
@@ -205,6 +206,7 @@ class Config:
             min_score=int(data.get("min_score", 0)),
             description_weights={k.lower(): int(v) for k, v in (data.get("description_weights") or {}).items()},
             max_posting_age_days=int(data.get("max_posting_age_days", 0)),
+            fetch_descriptions=bool(data.get("fetch_descriptions", True)),
             check_open=bool(data.get("check_open", True)),
             match_score_full=int(data.get("match_score_full", 25)),
             great_match_score=int(data.get("great_match_score", 15)),
