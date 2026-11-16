@@ -3,7 +3,7 @@ from collections import Counter
 from datetime import date
 
 from .extract import NOT_STATED, find_deadline, snippets
-from .filters import Config, Evaluation, evaluate
+from .filters import Config, Evaluation, evaluate, is_internship
 from .models import Job
 from .rank import description_score, match_percent, matched_keywords, title_score
 from . import jd, window
@@ -48,6 +48,12 @@ def official_url(job: Job, cfg: Config) -> str:
     return template.format(id=ident) if template and ident else job.url
 
 
+def job_score(job: Job, cfg: Config) -> int:
+    """Title + JD score; internships lose a few points so full-time roles come first."""
+    score = title_score(job.title, cfg, job.category) + description_score(job.description, cfg)
+    return score - cfg.intern_score_penalty if is_internship(job) else score
+
+
 def process(jobs: list[Job], cfg: Config, seen_links: set[str], live=None, describe=None):
     """Filter jobs, skip links already in the sheet, and return (records, stats)."""
     records: list[dict] = []
@@ -64,7 +70,7 @@ def process(jobs: list[Job], cfg: Config, seen_links: set[str], live=None, descr
         if not evaluation.keep:
             stats[f"rejected: {evaluation.reason}"] += 1
             continue
-        score = title_score(job.title, cfg, job.category) + description_score(job.description, cfg)
+        score = job_score(job, cfg)
         if score < cfg.min_score:
             stats[f"rejected: low title match (score under {cfg.min_score})"] += 1
             continue
@@ -88,7 +94,7 @@ def process(jobs: list[Job], cfg: Config, seen_links: set[str], live=None, descr
                 if not evaluation.keep:
                     stats[f"rejected: {evaluation.reason}"] += 1
                     continue
-                score = title_score(job.title, cfg, job.category) + description_score(job.description, cfg)
+                score = job_score(job, cfg)
                 if score < cfg.min_score:
                     stats[f"rejected: low title match (score under {cfg.min_score})"] += 1
                     continue

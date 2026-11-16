@@ -74,6 +74,7 @@ NOT_FULL_TIME = re.compile(
     r"\b(intern|interns|internship|co-?op|apprentice\w*|contractor|contract|part[- ]time|temporary|temp)\b",
     re.IGNORECASE,
 )
+INTERN_WORDS = re.compile(r"\b(intern|interns|internship)\b", re.IGNORECASE)
 SENIOR_TITLE = re.compile(
     r"\b(senior|sr\.?|staff|principal|lead|manager|director|head|vp|vice president|"
     r"architect|fellow|distinguished|ii|iii|iv)\b",
@@ -187,6 +188,8 @@ class Config:
     keep_companies: list[str] = field(default_factory=list)
     discovery_categories: list[str] = field(default_factory=list)  # lists to scan for unknown companies
     trusted_categories: list[str] = field(default_factory=list)  # skip the title-keyword check for these
+    intern_keywords: list[str] = field(default_factory=list)  # internships are fed only when the title has one of these (whole words)
+    intern_score_penalty: int = 0  # subtracted from an internship's score so full-time roles rank first
 
     @classmethod
     def from_yaml(cls, path, today=None) -> "Config":
@@ -217,6 +220,8 @@ class Config:
             keep_companies=[str(x).lower() for x in data.get("keep_companies", [])],
             discovery_categories=list((data.get("discovery") or {}).get("categories", [])),
             trusted_categories=list((data.get("discovery") or {}).get("trusted_categories", [])),
+            intern_keywords=[str(k).lower() for k in data.get("intern_keywords", [])],
+            intern_score_penalty=int(data.get("intern_score_penalty", 0)),
         )
 
 
@@ -262,6 +267,22 @@ def degree_status(description: str) -> str:
     return "ok"
 
 
+def is_internship(job: Job) -> bool:
+    """A plain internship: intern wording, and no other non-full-time wording (co-op, contract, part-time...)."""
+    text = f"{job.title} {job.commitment or ''}"
+    if not INTERN_WORDS.search(text):
+        return False
+    return not NOT_FULL_TIME.search(INTERN_WORDS.sub(" ", text))
+
+
+def is_wanted_internship(job: Job, cfg: Config) -> bool:
+    """Internships are normally skipped; the ones in Eagle's focus areas (cfg.intern_keywords) are let through."""
+    if not is_internship(job):
+        return False
+    title = job.title.lower()
+    return any(re.search(rf"\b{re.escape(word)}\b", title) for word in cfg.intern_keywords)
+
+
 def is_excluded_employer(company: str, cfg: Config) -> bool:
     """Schools and universities: you want industry roles."""
     low = company.strip().lower()
@@ -286,7 +307,8 @@ def evaluate(job: Job, cfg: Config) -> Evaluation:
         return Evaluation(False, "says no OPT / F-1 / visa sponsorship")
     if not is_us_location(job.location):
         return Evaluation(False, "non-US or unspecified location")
-    if NOT_FULL_TIME.search(job.title) or NOT_FULL_TIME.search(job.commitment or ""):
+    wanted_intern = is_wanted_internship(job, cfg)
+    if not wanted_intern and (NOT_FULL_TIME.search(job.title) or NOT_FULL_TIME.search(job.commitment or "")):
         return Evaluation(False, "not full-time")
     if SENIOR_TITLE.search(job.title):
         return Evaluation(False, "senior title")
@@ -308,7 +330,9 @@ def evaluate(job: Job, cfg: Config) -> Evaluation:
     ):
         return Evaluation(False, "title off-target")
 
-    if job.source == "simplify" or EARLY_TITLE.search(job.title) or EARLY_DESCRIPTION.search(job.description[:2000]):
+    if wanted_intern:
+        level = "Internship (focus-area exception)"
+    elif job.source == "simplify" or EARLY_TITLE.search(job.title) or EARLY_DESCRIPTION.search(job.description[:2000]):
         level = "New grad / entry"
     elif years is not None:
         level = f"Unspecified (JD asks {years}y)"

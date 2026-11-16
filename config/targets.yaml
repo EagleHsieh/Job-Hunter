@@ -107,6 +107,27 @@ cooldown_days: 7
 great_match_score: 15
 recent_company_max: 1
 
+# Internships are skipped, except those whose title has one of these words (Eagle: full-time first, but an
+# outstanding internship in his focus areas is worth trying and he will adjust his school schedule). Whole words,
+# lowercase. Hardware-only titles stay out on purpose. An internship's score is lowered by the penalty below so
+# full-time roles are fed first when the daily limit is tight.
+intern_keywords:
+  - ai
+  - ml
+  - machine learning
+  - deep learning
+  - gpu
+  - hpc
+  - inference
+  - quantum
+  - quant
+  - quantitative
+  - cloud
+  - fpga
+  - asic
+  - research engineer
+intern_score_penalty: 4
+
 # Overall limit per run: the best-scoring roles across all companies. The rest are not marked as seen,
 # so they appear on later days as the backlog drains. 0 = no limit.
 max_new_per_day: 20
