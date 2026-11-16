@@ -247,3 +247,21 @@ def test_boost_can_span_several_days(tmp_path):
     )
     for day, expected in [(date(2026, 11, 10), 20), (date(2026, 11, 11), 45), (date(2026, 11, 13), 45), (date(2026, 11, 14), 20)]:
         assert Config.from_yaml(path, today=day).max_new_per_day == expected
+
+
+def test_focus_area_internships_pass_only_when_enabled():
+    from jobhunter.filters import is_internship
+
+    gpu = job(title="Systems Research Engineer Intern - GPU Programming (Summer 2027)")
+    base = dict(title_keywords=["research engineer"], title_exclude=[], max_required_years=3)
+    assert is_internship(gpu)
+    assert not evaluate(gpu, Config(**base)).keep  # feature off: still skipped as not full-time
+    on = Config(**base, intern_keywords=["gpu"])
+    result = evaluate(gpu, on)
+    assert result.keep and result.level.startswith("Internship")
+    # Off-focus internships and co-ops/contracts stay out even with the keyword list on.
+    assert not evaluate(job(title="Hardware Engineering Intern"), on).keep
+    assert not evaluate(job(title="GPU Co-op Engineer"), on).keep
+    assert not evaluate(job(title="GPU Engineer", commitment="Contract"), on).keep
+    # "ai" must be a whole word: "Maintenance Intern" is not an AI internship.
+    assert not evaluate(job(title="Maintenance Intern"), Config(**base, intern_keywords=["ai"])).keep
